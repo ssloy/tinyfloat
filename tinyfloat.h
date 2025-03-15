@@ -2,9 +2,14 @@
 #include <cstdint>
 
 struct TinyFloat {
-    bool negative = false;
-    int8_t exponent = 0;    // [-127 ... 127]
-    uint32_t mantissa = 0;  // [2^23 ... 2^24)
+    bool     negative = false;
+    int16_t  exponent = 0;     // [-127 ... 128]
+    uint32_t mantissa = 0;     // [2^23 ... 2^24)
+
+    bool isnan() const { return exponent == 128 &&  mantissa; }
+    bool isinf() const { return exponent == 128 && !mantissa; }
+    bool isfinite() const { return !isnan() && !isinf(); }
+    bool isnormal() const { return exponent > -127; }
 };
 
 struct FixedPoint {
@@ -16,4 +21,10 @@ struct FixedPoint {
 };
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f);
+bool operator==(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator<(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator>(const TinyFloat& lhs, const TinyFloat& rhs);
 

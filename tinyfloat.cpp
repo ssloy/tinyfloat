@@ -22,10 +22,44 @@ bool FixedPoint::print(std::ostream& out, bool trailing, int carry, int digno) c
     return leading;
 }
 
-std::ostream& operator<<(std::ostream& out, const TinyFloat& f) {
+std::ostream& operator<<(std::ostream& out, const TinyFloat& f) { // TODO inf/nan
     if (f.negative) out << "-";
     FixedPoint fix(126 + f.exponent, f.mantissa);
     fix.print(out);
     return out;
+}
+
+bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return true; // +0 = -0
+    if (lhs.isnan() || rhs.isnan()) return false;
+    return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
+}
+
+bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs) {
+    return !(lhs == rhs);
+}
+
+bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
+    if (lhs.isnan() || rhs.isnan()) return false;
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return false; // +0 = -0
+    if (lhs.exponent < rhs.exponent || lhs.mantissa < rhs.mantissa)
+        return !rhs.negative;
+    return lhs.negative && !rhs.negative;
+}
+
+bool operator>(const TinyFloat& lhs, const TinyFloat& rhs) {
+    if (lhs.isnan() || rhs.isnan()) return false;
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return false; // +0 = -0
+    if (lhs.exponent > rhs.exponent || lhs.mantissa > rhs.mantissa)
+        return !lhs.negative;
+    return !lhs.negative && rhs.negative;
+}
+
+bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs) {
+    return lhs<rhs || lhs==rhs;
+}
+
+bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs) {
+    return lhs>rhs || lhs==rhs;
 }
 

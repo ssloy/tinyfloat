@@ -12,7 +12,7 @@ TinyFloat unpack(float f) {
     int sign_bit     = (u >> 31) % 2;
     int raw_exponent = (u >> 23) % 256;
     int raw_mantissa =  u % 0x800000;
-    return { sign_bit == 1, static_cast<int8_t>(raw_exponent - 127), static_cast<uint32_t>(raw_mantissa + 0x800000*int(raw_exponent!=0)) };
+    return { sign_bit == 1, static_cast<int16_t>(raw_exponent - 127), static_cast<uint32_t>(raw_mantissa + 0x800000*int(raw_exponent!=0)) };
 }
 
 int main() {
