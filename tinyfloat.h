@@ -6,6 +6,7 @@ struct TinyFloat {
     int16_t  exponent = 0;     // [-127 ... 128]
     uint32_t mantissa = 0;     // [2^23 ... 2^24)
 
+    TinyFloat() = default;
     TinyFloat(bool negative, int16_t exponent, uint32_t mantissa);
     TinyFloat(int); // converting constructor
 

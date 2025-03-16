@@ -78,6 +78,121 @@ int main() {
 
     TstCond (Failure, Half + MinusOne + Half == Zero, "1/2 + (-1) + 1/2 != 0");
 
+    TstCond (Failure, (Nine == Three * Three)
+            && (TwentySeven == Nine * Three) && (Eight == Four + Four)
+            && (ThirtyTwo == Eight * Four)
+            && (ThirtyTwo - TwentySeven - Four - One == Zero),
+            "9 != 3*3, 27 != 9*3, 32 != 8*4, or 32-27-4-1 != 0");
+
+    TstCond (Failure, (Five == Four + One) &&
+            (TwoForty == Four * Five * Three * Four)
+            && (TwoForty / Three - Four * Four * Five == Zero)
+            && ( TwoForty / Four - Five * Three * Four == Zero)
+            && ( TwoForty / Five - Four * Three * Four == Zero),
+            "5 != 4+1, 240/3 != 80, 240/4 != 60, or 240/5 != 48");
+
+    if (ErrCnt[Failure] == 0)
+        std::cout <<  "-1, 0, 1/2, 1, 2, 3, 4, 5, 9, 27, 32 & 240 are O.K." << std::endl << std::endl;
+
+    std::cerr << "Searching for Radix and Precision." << std::endl;
+    TinyFloat W = One;
+    TinyFloat Y;
+    do {
+        W = W + W;
+        Y = W + One;
+        Z = Y - W;
+        Y = Z - One;
+    } while (MinusOne + fabs(Y) < Zero);
+
+
+    // Now W is just big enough that |((W+1)-W)-1| >= 1.
+
+    TinyFloat Radix;
+    TinyFloat Precision = Zero;
+    Y = One;
+    do {
+        Radix = W + Y;
+        Y = Y + Y;
+        Radix = Radix - W;
+    } while ( Radix == Zero);
+
+    if ( Radix < Two ) {
+        Radix = One;
+    }
+
+    std::cerr << "Radix = " << Radix << std::endl;
+
+    if (Radix != 1) {
+        W = One;
+        do {
+            Precision = Precision + One;
+            W = W * Radix;
+            Y = W + One;
+        } while ((Y - W) == One);
+    }
+
+    // Now W == Radix^Precision is barely too big to satisfy (W+1)-W == 1
+
+    TinyFloat U1 = One / W;
+    TinyFloat U2 = Radix * U1;
+    std::cerr <<  "Closest relative separation found is U1 = " << U1 << std::endl << "Recalculating radix and precision" <<std::endl;
+
+
+    //  save old values
+
+    TinyFloat E0 = Radix;
+    TinyFloat E1 = U1;
+    TinyFloat E9 = U2;
+    TinyFloat E3 = Precision;
+
+    TinyFloat X = Four / Three;
+    TinyFloat Third = X - One;
+    TinyFloat F6 = Half - Third;
+    X = F6 + F6;
+    X = fabs(X - Third);
+    if (X < U2) X = U2;
+
+    //  now X = (unknown no.) ulps of 1+
+
+    do  {
+        U2 = X;
+        Y = Half * U2 + ThirtyTwo * U2 * U2;
+        Y = One + Y;
+        X = Y - One;
+    } while ( ! ((U2 <= X) || (X <= Zero)));  
+
+    //  now U2 == 1 ulp of 1 +
+
+    X = Two / Three;
+    F6 = X - Half;
+    Third = F6 + F6;
+    X = Third - Half;
+    X = fabs(X + F6);
+
+    if ( X < U1 ) {
+        X = U1;
+    }
+
+//  now  X == (unknown no.) ulps of 1 -
+
+  do  {
+    U1 = X;
+    Y = Half * U1 + ThirtyTwo * U1 * U1;
+    Y = Half - Y;
+    X = Half + Y;
+    Y = Half - X;
+    X = Half + Y;
+  } while ( ! ((U1 <= X) || (X <= Zero)));
+
+//  now U1 == 1 ulp of 1 -
+
+  if ( U1 == E1 ) {
+    printf ( "confirms closest relative separation U1 .\n" );
+  } else {
+    printf ( "gets better closest relative separation U1 = %.7e .\n", U1 );
+  }
+
+
 
 
     return 0;
