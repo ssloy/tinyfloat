@@ -105,10 +105,11 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
     if (a.negative==b.negative) {
         mantissa = a.mantissa + b.mantissa;
     } else {
-        mantissa = a.mantissa - b.mantissa;
-        if (mantissa<0) {
+        if (a.mantissa>=b.mantissa) {
+            mantissa = a.mantissa - b.mantissa;
+        } else {
             negative = !a.negative;
-            mantissa = -mantissa;
+            mantissa = b.mantissa - a.mantissa;
         }
     }
     return {negative, a.exponent, mantissa};

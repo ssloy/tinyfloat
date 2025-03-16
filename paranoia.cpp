@@ -68,14 +68,15 @@ int main() {
     TstCond ( Failure, (Four + Two * (- Two) == Zero), "4+2*(-2) != 0" );
     TstCond ( Failure, (Four - Three - One == Zero),   "4-3-1 != 0" );
 
-    TstCond (Failure, (MinusOne == (0 - One))
-            && (MinusOne + One == Zero ) && (One + MinusOne == Zero)
-            && (MinusOne + fabs(One) == Zero)
-            && (MinusOne + MinusOne * MinusOne == Zero),
-            "-1+1 != 0, (-1)+abs(1) != 0, or -1+(-1)*(-1) != 0");
+//  std::cerr << MinusOne << ":" << (0-One) << std::endl;
 
-    TstCond (Failure, Half + MinusOne + Half == Zero,
-            "1/2 + (-1) + 1/2 != 0");
+    TstCond ( Failure, (MinusOne == (0 - One)), "-1 != 0 - 1");
+    TstCond ( Failure, (MinusOne + One == Zero ), "-1+1 != 0");
+    TstCond ( Failure, (One + MinusOne == Zero), "1+(-1) != 0");
+    TstCond ( Failure, (MinusOne + fabs(One) == Zero), "(-1)+abs(1) != 0");
+    TstCond ( Failure, (MinusOne + MinusOne * MinusOne == Zero), "-1+(-1)*(-1) != 0");
+
+    TstCond (Failure, Half + MinusOne + Half == Zero, "1/2 + (-1) + 1/2 != 0");
 
 
 
