@@ -6,6 +6,9 @@ struct TinyFloat {
     int16_t  exponent = 0;     // [-127 ... 128]
     uint32_t mantissa = 0;     // [2^23 ... 2^24)
 
+    TinyFloat(bool negative, int16_t exponent, uint32_t mantissa);
+    TinyFloat(int); // converting constructor
+
     bool isnan() const { return exponent == 128 &&  mantissa; }
     bool isinf() const { return exponent == 128 && !mantissa; }
     bool isfinite() const { return !isnan() && !isinf(); }
@@ -21,10 +24,19 @@ struct FixedPoint {
 };
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f);
+
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs);
-bool operator<(const TinyFloat& lhs, const TinyFloat& rhs);
-bool operator>(const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator< (const TinyFloat& lhs, const TinyFloat& rhs);
+bool operator> (const TinyFloat& lhs, const TinyFloat& rhs);
+
+TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs);
+TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs);
+TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs);
+TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs);
+TinyFloat operator-(const TinyFloat &f);
+
+TinyFloat fabs(const TinyFloat &f);
 

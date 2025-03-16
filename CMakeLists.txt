@@ -17,4 +17,7 @@ set(SOURCES tinyfloat.cpp test.cpp)
 
 add_executable(${PROJECT_NAME} ${SOURCES})
 
+add_executable(paranoia tinyfloat.cpp paranoia.cpp)
+
+
 file(GENERATE OUTPUT .gitignore CONTENT "*")
