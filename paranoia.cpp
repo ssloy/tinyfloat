@@ -110,7 +110,7 @@ int main() {
     std::cerr << "Two = " << Two << std::endl;
 
     std::cerr << ( Radix < Two ) << std::endl;
-    
+
     if ( Radix < Two ) {
         Radix = One;
     }
@@ -168,38 +168,82 @@ int main() {
         X = U1;
     }
 
-//  now  X == (unknown no.) ulps of 1 -
+    //  now  X == (unknown no.) ulps of 1 -
+    std::cerr << U1 << " " << log(U1) << std::endl;
 
-  do  {
-    U1 = X;
-    Y = Half * U1 + ThirtyTwo * U1 * U1;
-    Y = Half - Y;
-    X = Half + Y;
-    Y = Half - X;
-    X = Half + Y;
-  } while ( ! ((U1 <= X) || (X <= Zero)));
+    do  {
+        U1 = X;
+        Y = Half * U1 + ThirtyTwo * U1 * U1;
+        Y = Half - Y;
+        X = Half + Y;
+        Y = Half - X;
+        X = Half + Y;
+    } while ( ! ((U1 <= X) || (X <= Zero)));
+    std::cerr << U1 << " " << log(U1) << std::endl;
 
-//  now U1 == 1 ulp of 1 -
+    //  now U1 == 1 ulp of 1 -
 
-  if ( U1 == E1 ) {
-      std:: cout <<  "confirms closest relative separation U1." << std::endl;
-  } else {
+    if ( U1 == E1 ) {
+        std:: cout <<  "confirms closest relative separation U1." << std::endl;
+    } else {
         std:: cout << "gets better closest relative separation U1 = " << U1 << "." << std::endl;
-  }
+    }
 
 
-  W = One / U1;
-  TinyFloat F9 = (Half - U1) + Half;
-  Radix = floor(0.01f + U2 / U1);
+    W = One / U1;
+    TinyFloat F9 = (Half - U1) + Half;
+    Radix = floor(0.01f + U2 / U1);
 
-  if ( Radix == E0 ) {
-          std:: cout <<  "Radix confirmed." << std::endl;
-  } else {
+    if ( Radix == E0 ) {
+        std:: cout <<  "Radix confirmed." << std::endl;
+    } else {
         std:: cout << "MYSTERY: recalculated Radix = " << Radix << "." << std::endl;
-  }
+    }
 
-  TstCond (Defect, Radix <= Eight + Eight, "Radix is too big: roundoff problems");
-  TstCond (Flaw, (Radix == Two) || (Radix == 10) || (Radix == One), "Radix is not as good as 2 or 10");
+    TstCond (Defect, Radix <= Eight + Eight, "Radix is too big: roundoff problems");
+    TstCond (Flaw, (Radix == Two) || (Radix == 10) || (Radix == One), "Radix is not as good as 2 or 10");
+
+
+    TstCond (Failure, F9 - Half < Half, "(1-U1)-1/2 < 1/2 is FALSE, prog. fails?");
+    X = F9;
+    TinyFloat I = 1;
+    Y = X - Half;
+    Z = Y - Half;
+    TstCond (Failure, (X != One) || (Z == Zero), "Comparison is fuzzy,X=1 but X-1/2-1/2 != 0");
+    X = One + U2;
+    I = 0;
+
+    /*... BMinusU2 = nextafter(Radix, 0) */
+    TinyFloat BMinusU2 = Radix - One;
+    BMinusU2 = (BMinusU2 - U2) + One;
+    /* 
+       Purify Integers.
+       */
+    if (Radix != One) {
+        X = - TwoForty * log(U1) / log(Radix);
+        std::cerr << U1 << " " << log(U1) << std::endl;
+        std::cerr << Radix << " " << log(Radix) << std::endl;
+
+        Y = floor(Half + X);
+        if (fabs(X - Y) * Four < One) X = Y;
+        Precision = X / TwoForty;
+        Y = floor(Half + Precision);
+        if (fabs(Precision - Y) * TwoForty < Half) Precision = Y;
+    }
+
+    if ((Precision != floor(Precision)) || (Radix == One))
+    {
+        printf("Precision cannot be characterized by an Integer number\n");
+        printf("of significant digits but, by itself, this is a minor flaw.\n");
+    }
+
+    if (Radix == One) {
+        printf("logarithmic encoding has precision characterized solely by U1.\n");
+    } else {
+        std::cout << "The number of significant digits of the Radix is "<< Precision << "." << std::endl;
+    }
+
+    TstCond (Serious, U2 * Nine * Nine * TwoForty < One, "Precision worse than 5 decimal figures  ");
 
 
     return 0;

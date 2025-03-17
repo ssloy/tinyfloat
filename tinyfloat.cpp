@@ -202,3 +202,37 @@ TinyFloat floor(const TinyFloat &f) {
     return {f.negative, f.exponent, mantissa};
 }
 
+/*
+#define LN2 0.69314718f  // Natural log of 2
+// Polynomial approximation for log(1 + x) in [1, 2)
+static inline TinyFloat log1p_approx(const TinyFloat &m) {
+    // Remez polynomial approximation of log(1 + x) for x in [0, 1)
+    TinyFloat m2 = m * m;
+    return m * (0.9999964239f + m * (-0.4998741238f + m * (0.3317990251f + m * (-0.2407338085f + m * 0.1676540711f))));
+}
+*/
+
+#define LN2 0.69314718055994530942f  // Natural log(2)
+
+// 7th-degree minimax polynomial for log(1 + x) in [1, 2)
+static inline TinyFloat log1p_approx(const TinyFloat m) {
+    TinyFloat m2 = m * m;
+    TinyFloat m4 = m2 * m2;
+    return m * (0.999999925f + m * (-0.499999994f + m * (0.333333313f + m * (-0.250000000f + m * (0.199999988f + m * (-0.166666656f + m * 0.142857134f))))));
+}
+
+
+TinyFloat log(const TinyFloat &f) {
+//TODO NAN     if (f <= 0)
+/*
+    if (x < 0.0f) return 0.0f / 0.0f;   // NaN for log(negative)
+    if (x == 0.0f) return -1.0f / 0.0f; // -Inf for log(0)
+    if (x == 1.0f) return 0.0f;         // log(1) = 0
+*/
+
+    TinyFloat a {false, f.exponent, f.mantissa & ~(1<<23)};
+
+    return TinyFloat(f.exponent) * LN2 + log1p_approx(a);
+
+}
+

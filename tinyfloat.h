@@ -42,4 +42,5 @@ TinyFloat operator-(const TinyFloat &f);
 
 TinyFloat fabs(const TinyFloat &f);
 TinyFloat floor(const TinyFloat &f);
+TinyFloat log(const TinyFloat &f);
 
