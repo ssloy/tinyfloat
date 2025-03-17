@@ -13,9 +13,9 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "Clang|GNU|Intel")
   add_compile_options(-Wall)
 endif()
 
-set(SOURCES tinyfloat.cpp test.cpp)
+#set(SOURCES tinyfloat.cpp test.cpp)
 
-add_executable(${PROJECT_NAME} ${SOURCES})
+#add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_executable(paranoia tinyfloat.cpp paranoia.cpp)
 

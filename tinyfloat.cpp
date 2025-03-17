@@ -12,7 +12,7 @@ TinyFloat::TinyFloat(bool n, int16_t e, uint32_t m) : negative(n), exponent(e), 
         mantissa = mantissa * 2;
         exponent = exponent - 1;
     }
-    while (mantissa > (1<<24)  && exponent < 128) { // TODO decide what to do if the normalization does not work
+    while (mantissa >= (1<<24)  && exponent < 128) { // TODO decide what to do if the normalization does not work
         mantissa = mantissa / 2;
         exponent = exponent + 1;
     }
@@ -20,6 +20,14 @@ TinyFloat::TinyFloat(bool n, int16_t e, uint32_t m) : negative(n), exponent(e), 
 
 TinyFloat::TinyFloat(int i) {
     *this = TinyFloat(i<0, 23, i<0?-i:i);
+}
+
+TinyFloat::TinyFloat(float f) {
+    const uint32_t u = std::bit_cast<uint32_t>(f);
+    int sign_bit     = (u >> 31) % 2;
+    int raw_exponent = (u >> 23) % 256;
+    int raw_mantissa =  u % 0x800000;
+    *this = { sign_bit == 1, static_cast<int16_t>(raw_exponent - 127), static_cast<uint32_t>(raw_mantissa + 0x800000*int(raw_exponent!=0)) };
 }
 
 FixedPoint::FixedPoint(int offset, uint32_t n) {
@@ -64,6 +72,7 @@ bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs) {
 bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
     if (lhs.isnan() || rhs.isnan()) return false;
     if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return false; // +0 = -0
+//  std::cerr <<  lhs.exponent << " " << rhs.exponent << " " << lhs.mantissa << " " << rhs.mantissa<< std::endl;
     if (lhs.exponent < rhs.exponent || lhs.mantissa < rhs.mantissa)
         return !rhs.negative;
     return lhs.negative && !rhs.negative;
@@ -178,5 +187,18 @@ TinyFloat operator-(const TinyFloat &f) {
 
 TinyFloat fabs(const TinyFloat &f) {
     return {false, f.exponent, f.mantissa};
+}
+
+TinyFloat floor(const TinyFloat &f) {
+    if (f.exponent < 0)
+        return (f < 0) ? -1 : 0;  // If |x| < 1, floor is -1 or 0
+
+    uint32_t mask = (1 << (23 - f.exponent)) - 1; // mask to clear fraction bits
+    if (!(f.mantissa & mask)) return f; // Already an integer
+
+    uint32_t mantissa = f.mantissa & ~mask; // clear fractional part
+
+    if (f < 0) return TinyFloat{true, f.exponent, mantissa} - 1; // floor correction for negatives
+    return {f.negative, f.exponent, mantissa};
 }
 

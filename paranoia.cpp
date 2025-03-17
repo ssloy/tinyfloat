@@ -54,21 +54,12 @@ int main() {
     TstCond( Failure, (One + One == Two),    "1+1 != 2" );
 
     TinyFloat Z = - Zero;
-
-    if ( Z != Zero ) {
-        ErrCnt[Failure] = ErrCnt[Failure] + 1;
-        printf ( "Comparison alleges that -0.0 is Non-zero!\n" );
-//      U2 = 0.001;
-//      Radix = 1;
-//      TstPtUf();
-    }
+    TstCond( Failure, (Z == 0.0f), "-0.0 != 0.0" );
 
     TstCond ( Failure, (Three == Two + One),           "3 != 2+1" );
     TstCond ( Failure, (Four == Three + One),          "4 != 3+1" );
     TstCond ( Failure, (Four + Two * (- Two) == Zero), "4+2*(-2) != 0" );
     TstCond ( Failure, (Four - Three - One == Zero),   "4-3-1 != 0" );
-
-//  std::cerr << MinusOne << ":" << (0-One) << std::endl;
 
     TstCond ( Failure, (MinusOne == (0 - One)), "-1 != 0 - 1");
     TstCond ( Failure, (MinusOne + One == Zero ), "-1+1 != 0");
@@ -104,7 +95,6 @@ int main() {
         Y = Z - One;
     } while (MinusOne + fabs(Y) < Zero);
 
-
     // Now W is just big enough that |((W+1)-W)-1| >= 1.
 
     TinyFloat Radix;
@@ -116,6 +106,11 @@ int main() {
         Radix = Radix - W;
     } while ( Radix == Zero);
 
+    std::cerr << "Radix = " << Radix << std::endl;
+    std::cerr << "Two = " << Two << std::endl;
+
+    std::cerr << ( Radix < Two ) << std::endl;
+    
     if ( Radix < Two ) {
         Radix = One;
     }
@@ -187,12 +182,24 @@ int main() {
 //  now U1 == 1 ulp of 1 -
 
   if ( U1 == E1 ) {
-    printf ( "confirms closest relative separation U1 .\n" );
+      std:: cout <<  "confirms closest relative separation U1." << std::endl;
   } else {
-    printf ( "gets better closest relative separation U1 = %.7e .\n", U1 );
+        std:: cout << "gets better closest relative separation U1 = " << U1 << "." << std::endl;
   }
 
 
+  W = One / U1;
+  TinyFloat F9 = (Half - U1) + Half;
+  Radix = floor(0.01f + U2 / U1);
+
+  if ( Radix == E0 ) {
+          std:: cout <<  "Radix confirmed." << std::endl;
+  } else {
+        std:: cout << "MYSTERY: recalculated Radix = " << Radix << "." << std::endl;
+  }
+
+  TstCond (Defect, Radix <= Eight + Eight, "Radix is too big: roundoff problems");
+  TstCond (Flaw, (Radix == Two) || (Radix == 10) || (Radix == One), "Radix is not as good as 2 or 10");
 
 
     return 0;

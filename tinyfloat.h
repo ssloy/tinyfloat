@@ -8,7 +8,8 @@ struct TinyFloat {
 
     TinyFloat() = default;
     TinyFloat(bool negative, int16_t exponent, uint32_t mantissa);
-    TinyFloat(int); // converting constructor
+    TinyFloat(int); // converting constructors
+    TinyFloat(float);
 
     bool isnan() const { return exponent == 128 &&  mantissa; }
     bool isinf() const { return exponent == 128 && !mantissa; }
@@ -40,4 +41,5 @@ TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator-(const TinyFloat &f);
 
 TinyFloat fabs(const TinyFloat &f);
+TinyFloat floor(const TinyFloat &f);
 
