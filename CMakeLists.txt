@@ -18,7 +18,7 @@ endif()
 #add_executable(${PROJECT_NAME} ${SOURCES})
 
 add_executable(tests tinyfloat.cpp tests.cpp)
-add_executable(paranoia tinyfloat.cpp paranoia.cpp)
+#add_executable(paranoia tinyfloat.cpp paranoia.cpp)
 
 
 file(GENERATE OUTPUT .gitignore CONTENT "*")

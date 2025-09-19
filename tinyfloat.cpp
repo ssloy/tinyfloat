@@ -3,25 +3,26 @@
 #include <cassert>
 #include "tinyfloat.h"
 
-TinyFloat::TinyFloat(bool n, int16_t e, uint32_t m) : negative(n), exponent(e), mantissa(m) {
-    if (!mantissa) {
+TinyFloat::TinyFloat(bool negative, int16_t exponent, uint32_t mantissa) : negative(negative), exponent(exponent), mantissa(mantissa) {
+}
+
+TinyFloat::TinyFloat(int i) {
+    negative = i<0;
+    exponent = 23;
+    mantissa = i<0?-i:i;
+    if (!mantissa) { // zero
         negative = false;
         exponent = -126;
         return;
     }
-
-    while (mantissa < (1<<23) && exponent > -127) {
+    while (mantissa < (1<<23) && exponent > -126) { // TODO decide what to do if the normalization does not work
         mantissa = mantissa * 2;
         exponent = exponent - 1;
     }
-    while (mantissa >= (1<<24)  && exponent < 128) { // TODO decide what to do if the normalization does not work
+    while (mantissa >= (1<<24) && exponent < 127) {
         mantissa = mantissa / 2;
         exponent = exponent + 1;
     }
-}
-
-TinyFloat::TinyFloat(int i) {
-    *this = TinyFloat(i<0, 23, i<0?-i:i);
 }
 
 TinyFloat::TinyFloat(float f) {  // TODO nan/inf
@@ -88,7 +89,7 @@ std::ostream& operator<<(std::ostream& out, const TinyFloat& f) { // TODO inf/na
 }
 
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return true; // +0 = -0
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return true; // +0 = -0
     if (lhs.isnan() || rhs.isnan()) return false;
     return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
 }
@@ -99,7 +100,7 @@ bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs) {
 
 bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
     if (lhs.isnan() || rhs.isnan()) return false;
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return false; // +0 = -0
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return false; // +0 = -0
 //  std::cerr <<  lhs.exponent << " " << rhs.exponent << " " << lhs.mantissa << " " << rhs.mantissa<< std::endl;
     if (lhs.exponent < rhs.exponent || lhs.mantissa < rhs.mantissa)
         return !rhs.negative;
@@ -107,10 +108,14 @@ bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
 }
 
 bool operator>(const TinyFloat& lhs, const TinyFloat& rhs) {
+    std::cerr << "gt: " << lhs << " " << rhs << std::endl;
+    std::cerr << lhs.exponent << " " << lhs.mantissa << " " << rhs.exponent << " " << rhs.mantissa << std::endl;
     if (lhs.isnan() || rhs.isnan()) return false;
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==0 && rhs.exponent==0) return false; // +0 = -0
-    if (lhs.exponent > rhs.exponent || lhs.mantissa > rhs.mantissa)
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return false; // +0 = -0
+    if (lhs.exponent > rhs.exponent || (lhs.exponent==rhs.exponent && lhs.mantissa > rhs.mantissa)) {
+    std::cerr << "gna\n";
         return !lhs.negative;
+        }
     return !lhs.negative && rhs.negative;
 }
 

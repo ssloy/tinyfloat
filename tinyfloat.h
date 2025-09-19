@@ -3,7 +3,7 @@
 
 struct TinyFloat {
     bool     negative = false;
-    int16_t  exponent = 0;     // [-126 ... 128], corrected exponent
+    int16_t  exponent = -126;  // [-126 ... 128], corrected exponent
     uint32_t mantissa = 0;     // [0 ... 2^24), so mantissa/2^23 is in [0, 2) range
 
     TinyFloat() = default;
@@ -29,7 +29,6 @@ struct Q128_149 {
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f);
 
-/*
 
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs);
@@ -37,6 +36,7 @@ bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator< (const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator> (const TinyFloat& lhs, const TinyFloat& rhs);
+/*
 
 TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs);

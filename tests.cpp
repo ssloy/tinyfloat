@@ -68,7 +68,6 @@ nan\n\
         o << TinyFloat(f);
         std::istringstream i(o.str());
         float v = std::stof(o.str());
-        std::cerr << v << " " << f << std::endl;
         assert((std::isnan(v) && std::isnan(f)) ||  v == f);
     }
 
@@ -84,10 +83,74 @@ nan\n\
     assert(s.str() == expected);
 }
 
+void check_compare(float a, float b) {
+    TinyFloat sa(a);
+    TinyFloat sb(b);
+
+    // Native float comparisons
+    bool eq   = (a == b);
+    bool ne   = (a != b);
+    bool lt   = (a <  b);
+    bool le   = (a <= b);
+    bool gt   = (a >  b);
+    bool ge   = (a >= b);
+
+    // TinyFloat comparisons
+    bool s_eq = (sa == sb);
+    bool s_ne = (sa != sb);
+    bool s_lt = (sa < sb);
+    bool s_le = (sa <= sb);
+    bool s_gt = (sa > sb);
+    bool s_ge = (sa >= sb);
+
+    // For NaNs: only "!=" is true, everything else must be false
+    if (std::isnan(a) || std::isnan(b)) {
+        assert(!s_eq && s_ne && !s_lt && !s_le && !s_gt && !s_ge);
+    } else {
+        assert(eq == s_eq);
+        assert(ne == s_ne);
+        assert(lt == s_lt);
+        assert(le == s_le);
+        std::cerr << a << " " << sa << " " << b << " " << sb << std::endl;
+        assert(gt == s_gt);
+        assert(ge == s_ge);
+    }
+}
+
+void test_comparisons() {
+    float vals[] = {
+        0.0f,
+        -0.0f,
+        1.0f,
+        -1.0f,
+        123.5f,
+        -123.5f,
+        std::numeric_limits<float>::denorm_min(), // smallest positive subnormal
+        -std::numeric_limits<float>::denorm_min(),
+        std::numeric_limits<float>::min(),   // smallest positive normal
+        -std::numeric_limits<float>::min(),
+        std::numeric_limits<float>::max(),
+        -std::numeric_limits<float>::max(),
+        std::numeric_limits<float>::infinity(),
+        -std::numeric_limits<float>::infinity(),
+        std::numeric_limits<float>::quiet_NaN()
+    };
+
+    // Compare every pair
+    for (float a : vals) {
+        for (float b : vals) {
+            check_compare(a, b);
+        }
+    }
+
+    std::cout << "All comparison tests passed!\n";
+}
+
 int main() {
     test_float_roundtrip();
     test_int_roundtrip();
     test_printing();
+    test_comparisons();
     return 0;
 }
 
