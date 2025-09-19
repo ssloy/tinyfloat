@@ -2,19 +2,9 @@
 #include <limits>
 #include <cassert>
 #include "tinyfloat.h"
+#include "printer.h"
 
-TinyFloat::TinyFloat(bool negative, int16_t exponent, uint32_t mantissa) : negative(negative), exponent(exponent), mantissa(mantissa) {
-}
-
-TinyFloat::TinyFloat(int i) {
-    negative = i<0;
-    exponent = 23;
-    mantissa = i<0?-i:i;
-    if (!mantissa) { // zero
-        negative = false;
-        exponent = -126;
-        return;
-    }
+TinyFloat::TinyFloat(bool neg, int16_t exp, uint32_t mant) : negative(neg), exponent(exp), mantissa(mant) {
     while (mantissa < (1<<23) && exponent > -126) { // TODO decide what to do if the normalization does not work
         mantissa = mantissa * 2;
         exponent = exponent - 1;
@@ -25,7 +15,19 @@ TinyFloat::TinyFloat(int i) {
     }
 }
 
-TinyFloat::TinyFloat(float f) {  // TODO nan/inf
+TinyFloat::TinyFloat(int i) {
+    negative = i<0;
+    exponent = 23;
+    mantissa = i<0? -i : i;
+    if (!mantissa) { // zero
+        negative = false;
+        exponent = -126;
+        return;
+    }
+    *this = { negative, exponent, mantissa }; // normalize
+}
+
+TinyFloat::TinyFloat(float f) { // nan/inf are correctly handled
     const uint32_t u = std::bit_cast<uint32_t>(f);
     uint32_t sign_bit     = (u >> 31) % 2;
     uint32_t raw_exponent = (u >> 23) % 256;
@@ -37,13 +39,11 @@ TinyFloat::TinyFloat(float f) {  // TODO nan/inf
 
     if (exponent==-127) { // zero or subnormal
         exponent++;
-    } else {
-        if (exponent<128) // normal, recover the hidden bit = 1
-            mantissa = raw_mantissa + (1<<23);
-    }
+    } else if (exponent<128) // normal, recover the hidden bit = 1
+        mantissa = raw_mantissa + (1<<23);
 }
 
-TinyFloat::operator float() const {
+TinyFloat::operator float() const { // nan/inf are correctly handled
     uint32_t sign_bit = negative;
     uint32_t raw_exponent = exponent+127;
     uint32_t raw_mantissa = mantissa % (1<<23); // clear the hidden bit
@@ -52,44 +52,19 @@ TinyFloat::operator float() const {
     return std::bit_cast<float>((sign_bit<<31) | (raw_exponent<<23) | raw_mantissa);
 }
 
-Q128_149::Q128_149(int offset, uint32_t n) {
-    int cnt = 0;
-    while (n > 0) {
-        number[offset + cnt++] = n % 2;
-        n = n / 2;
-    }
-}
-
-bool Q128_149::print(std::ostream& out, bool trailing, int carry, int digno) const {
-    int sum = 0;
-    for (int i=0; i<nbits; i++)
-        sum += number[i] * digits[digno][i];
-    int digit = (sum + carry) % 10;
-    bool leading = !digit && digno > dotpos;
-    trailing    &= !digit && digno < dotpos-1;
-    if (digno < ndigits-1)
-        leading &= print(out, trailing, (sum + carry)/10, digno + 1);
-    if (digno == dotpos-1) out << ".";
-    if (!leading && !trailing) out << digit;
-    return leading;
-}
-
-std::ostream& operator<<(std::ostream& out, const TinyFloat& f) { // TODO inf/nan
+std::ostream& operator<<(std::ostream& out, const TinyFloat& f) {
     if (f.isnan()) {
         out << "nan";
     } else {
         if (f.negative) out << "-";
-        if (f.isinf()) out << "inf";
-        else {
-            Q128_149 fix(126 + f.exponent, f.mantissa);
-            fix.print(out);
-        }
+        if (f.isinf())  out << "inf";
+        else out << Q128_149(126 + f.exponent, f.mantissa);
     }
     return out;
 }
 
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
-    if (lhs.isnan() || rhs.isnan()) return false;
+    if (lhs.isnan() || rhs.isnan()) return false;  // NaNs are unordered
     if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return true; // +0 = -0
     return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
 }
@@ -99,12 +74,11 @@ bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs) {
 }
 
 bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
-    if (lhs.isnan() || rhs.isnan()) return false; // NaNs are unordered
-    if (lhs == rhs) return false;
+    if (lhs.isnan() || rhs.isnan() || lhs==rhs) return false;
     if (lhs.negative != rhs.negative)      // positive > negative
         return lhs.negative;
-    return rhs.negative !=                 // same sign and not equal
-        ((lhs.exponent < rhs.exponent) ||  // => check exponents and then mantissas
+    return lhs.negative !=                 // same sign and not equal
+        ((lhs.exponent <  rhs.exponent) || // => check exponents and then mantissas
          (lhs.exponent == rhs.exponent && lhs.mantissa < rhs.mantissa));
 }
 
@@ -122,20 +96,31 @@ bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs) {
 }
 
 TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
-    TinyFloat a = lhs; // TODO edge cases
+    TinyFloat a = lhs;
     TinyFloat b = rhs;
+    if (a.isnan() || b.isnan())
+        return TinyFloat::nan();
 
-    bool negative;
-    uint32_t mantissa;
+    if (a.isinf() && b.isinf()) {
+        if (a.negative == b.negative) return a; // same sign infinity
+        return TinyFloat::nan();                // inf + -inf = NaN
+    }
+    if (a.isinf()) return a;
+    if (b.isinf()) return b;
+
+    if (a.mantissa == 0 && b.mantissa==0 && a.exponent==-126 && b.exponent==-126) // handle zeros
+        return {(a.negative == b.negative) ? a.negative : false, -126, 0};        // if signs differ, result is +0
+
+    if (a.exponent < b.exponent)
+        std::swap(a, b);
 
     while (a.exponent > b.exponent) {
         b.mantissa /=  2;
         b.exponent++;
     }
-    while (a.exponent < b.exponent) {
-        a.mantissa /=  2;
-        a.exponent++;
-    }
+
+    bool negative;
+    uint32_t mantissa;
 
     negative = a.negative;
     if (a.negative==b.negative) {
@@ -148,8 +133,12 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
             mantissa = b.mantissa - a.mantissa;
         }
     }
+    // When the sum of two operands with opposite signs (or the difference of two operands with like signs) is exactly zero, the sign of that sum (or difference) shall be +0
+    if (!mantissa)
+        negative = false;
     return {negative, a.exponent, mantissa};
 }
+/*
 
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs) {
     TinyFloat f(!rhs.negative, rhs.exponent, rhs.mantissa);
@@ -211,6 +200,7 @@ TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs) {
 TinyFloat operator-(const TinyFloat &f) {
     return {!f.negative, f.exponent, f.mantissa};
 }
+*/
 
 #if 0
 
