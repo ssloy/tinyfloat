@@ -89,8 +89,8 @@ std::ostream& operator<<(std::ostream& out, const TinyFloat& f) { // TODO inf/na
 }
 
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return true; // +0 = -0
     if (lhs.isnan() || rhs.isnan()) return false;
+    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return true; // +0 = -0
     return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
 }
 
@@ -99,28 +99,18 @@ bool operator!=(const TinyFloat& lhs, const TinyFloat& rhs) {
 }
 
 bool operator<(const TinyFloat& lhs, const TinyFloat& rhs) {
-    if (lhs.isnan() || rhs.isnan()) return false;
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return false; // +0 = -0
-//  std::cerr <<  lhs.exponent << " " << rhs.exponent << " " << lhs.mantissa << " " << rhs.mantissa<< std::endl;
-    if (lhs.exponent < rhs.exponent || lhs.mantissa < rhs.mantissa)
-        return !rhs.negative;
-    return lhs.negative && !rhs.negative;
+    if (lhs.isnan() || rhs.isnan()) return false; // NaNs are unordered
+    if (lhs == rhs) return false;
+    if (lhs.negative != rhs.negative)      // positive > negative
+        return lhs.negative;
+    return rhs.negative !=                 // same sign and not equal
+        ((lhs.exponent < rhs.exponent) ||  // => check exponents and then mantissas
+         (lhs.exponent == rhs.exponent && lhs.mantissa < rhs.mantissa));
 }
 
 bool operator>(const TinyFloat& lhs, const TinyFloat& rhs) {
-    std::cerr << "gt: " << lhs << " " << rhs << std::endl;
-    std::cerr << lhs.exponent << " " << lhs.mantissa << " " << rhs.exponent << " " << rhs.mantissa << std::endl;
-    if (lhs.isnan() || rhs.isnan()) return false;
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return false; // +0 = -0
-    if (lhs.negative != rhs.negative) return rhs.negative && !lhs.negative;  // positive > negative
-
-    if (lhs.exponent != rhs.exponent) // same sign
-        return (lhs.exponent > rhs.exponent) ^ lhs.negative;
-
-    if (lhs.mantissa != rhs.mantissa) // same sign
-        return (lhs.mantissa > rhs.mantissa) ^ lhs.negative;
-
-    return false;
+    if (lhs.isnan() || rhs.isnan()) return false; // NaNs are unordered
+    return !(lhs<rhs || lhs==rhs);
 }
 
 bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs) {

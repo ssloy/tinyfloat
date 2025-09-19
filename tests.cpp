@@ -111,7 +111,6 @@ void check_compare(float a, float b) {
         assert(ne == s_ne);
         assert(lt == s_lt);
         assert(le == s_le);
-        std::cerr << a << " " << sa << " " << b << " " << sb << std::endl;
         assert(gt == s_gt);
         assert(ge == s_ge);
     }
@@ -123,8 +122,10 @@ void test_comparisons() {
         -0.0f,
         1.0f,
         -1.0f,
-        123.5f,
-        -123.5f,
+        123.f,
+        -123.f,
+        123.4f,
+        -123.4f,
         std::numeric_limits<float>::denorm_min(), // smallest positive subnormal
         -std::numeric_limits<float>::denorm_min(),
         std::numeric_limits<float>::min(),   // smallest positive normal
@@ -151,6 +152,13 @@ int main() {
     test_int_roundtrip();
     test_printing();
     test_comparisons();
+
+    for (bool a : {false, true}) 
+    for (bool b : {false, true}) 
+    std::cerr << a << " " << b << " " << (a!=b) << std::endl;
+    for (bool a : {false, true}) 
+    for (bool b : {false, true}) 
+    std::cerr << a << " " << b << " " << (!a!=!b) << std::endl;
     return 0;
 }
 
