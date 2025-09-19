@@ -112,11 +112,15 @@ bool operator>(const TinyFloat& lhs, const TinyFloat& rhs) {
     std::cerr << lhs.exponent << " " << lhs.mantissa << " " << rhs.exponent << " " << rhs.mantissa << std::endl;
     if (lhs.isnan() || rhs.isnan()) return false;
     if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return false; // +0 = -0
-    if (lhs.exponent > rhs.exponent || (lhs.exponent==rhs.exponent && lhs.mantissa > rhs.mantissa)) {
-    std::cerr << "gna\n";
-        return !lhs.negative;
-        }
-    return !lhs.negative && rhs.negative;
+    if (lhs.negative != rhs.negative) return rhs.negative && !lhs.negative;  // positive > negative
+
+    if (lhs.exponent != rhs.exponent) // same sign
+        return (lhs.exponent > rhs.exponent) ^ lhs.negative;
+
+    if (lhs.mantissa != rhs.mantissa) // same sign
+        return (lhs.mantissa > rhs.mantissa) ^ lhs.negative;
+
+    return false;
 }
 
 bool operator<=(const TinyFloat& lhs, const TinyFloat& rhs) {
