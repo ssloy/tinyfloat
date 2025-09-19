@@ -1,10 +1,12 @@
+#include <bit>
+#include <limits>
 #include <cassert>
 #include "tinyfloat.h"
 
 TinyFloat::TinyFloat(bool n, int16_t e, uint32_t m) : negative(n), exponent(e), mantissa(m) {
     if (!mantissa) {
         negative = false;
-        exponent = 0;
+        exponent = -126;
         return;
     }
 
@@ -22,15 +24,34 @@ TinyFloat::TinyFloat(int i) {
     *this = TinyFloat(i<0, 23, i<0?-i:i);
 }
 
-TinyFloat::TinyFloat(float f) {
+TinyFloat::TinyFloat(float f) {  // TODO nan/inf
     const uint32_t u = std::bit_cast<uint32_t>(f);
-    int sign_bit     = (u >> 31) % 2;
-    int raw_exponent = (u >> 23) % 256;
-    int raw_mantissa =  u % 0x800000;
-    *this = { sign_bit == 1, static_cast<int16_t>(raw_exponent - 127), static_cast<uint32_t>(raw_mantissa + 0x800000*int(raw_exponent!=0)) };
+    uint32_t sign_bit     = (u >> 31) % 2;
+    uint32_t raw_exponent = (u >> 23) % 256;
+    uint32_t raw_mantissa =  u % (1<<23);
+
+    negative = sign_bit;
+    exponent = raw_exponent - 127;
+    mantissa = raw_mantissa;
+
+    if (exponent==-127) { // zero or subnormal
+        exponent++;
+    } else {
+        if (exponent<128) // normal, recover the hidden bit = 1
+            mantissa = raw_mantissa + (1<<23);
+    }
 }
 
-FixedPoint::FixedPoint(int offset, uint32_t n) {
+TinyFloat::operator float() const {
+    uint32_t sign_bit = negative;
+    uint32_t raw_exponent = exponent+127;
+    uint32_t raw_mantissa = mantissa % (1<<23); // clear the hidden bit
+    if (exponent==-126 && mantissa==0)
+        raw_exponent = 0; // zero
+    return std::bit_cast<float>((sign_bit<<31) | (raw_exponent<<23) | raw_mantissa);
+}
+
+Q128_149::Q128_149(int offset, uint32_t n) {
     int cnt = 0;
     while (n > 0) {
         number[offset + cnt++] = n % 2;
@@ -38,24 +59,31 @@ FixedPoint::FixedPoint(int offset, uint32_t n) {
     }
 }
 
-bool FixedPoint::print(std::ostream& out, bool trailing, int carry, int digno) const {
+bool Q128_149::print(std::ostream& out, bool trailing, int carry, int digno) const {
     int sum = 0;
     for (int i=0; i<nbits; i++)
         sum += number[i] * digits[digno][i];
     int digit = (sum + carry) % 10;
-    bool leading = !digit && digno > dotpos + 1;
-    trailing    &= !digit && digno < dotpos;
+    bool leading = !digit && digno > dotpos;
+    trailing    &= !digit && digno < dotpos-1;
     if (digno < ndigits-1)
         leading &= print(out, trailing, (sum + carry)/10, digno + 1);
-    if (digno == dotpos) out << ".";
+    if (digno == dotpos-1) out << ".";
     if (!leading && !trailing) out << digit;
     return leading;
 }
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f) { // TODO inf/nan
-    if (f.negative) out << "-";
-    FixedPoint fix(126 + f.exponent, f.mantissa);
-    fix.print(out);
+    if (f.isnan()) {
+        out << "nan";
+    } else {
+        if (f.negative) out << "-";
+        if (f.isinf()) out << "inf";
+        else {
+            Q128_149 fix(126 + f.exponent, f.mantissa);
+            fix.print(out);
+        }
+    }
     return out;
 }
 
@@ -185,6 +213,8 @@ TinyFloat operator-(const TinyFloat &f) {
     return {!f.negative, f.exponent, f.mantissa};
 }
 
+#if 0
+
 TinyFloat fabs(const TinyFloat &f) {
     return {false, f.exponent, f.mantissa};
 }
@@ -235,4 +265,5 @@ TinyFloat log(const TinyFloat &f) {
     return TinyFloat(f.exponent) * LN2 + log1p_approx(a);
 
 }
+#endif
 

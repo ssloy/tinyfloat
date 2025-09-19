@@ -1,5 +1,6 @@
 #include <iostream>
 #include <cstring>
+#include <cmath>
 #include "tinyfloat.h"
 
 // PARANOIA tests the floating point arithmetic implementation on a computer.
@@ -29,22 +30,28 @@ void TstCond(Level level, bool valid, std::string msg) {
     return;
 }
 
+#if 1
+#define FLOAT TinyFloat
+#else
+#define FLOAT float
+#endif
+
 int main() {
     //  First two assignments use integer right-hand sides.
-    TinyFloat Zero = 0;
-    TinyFloat One = 1;
-    TinyFloat Two = One + One;
-    TinyFloat Three = Two + One;
-    TinyFloat Four = Three + One;
-    TinyFloat Five = Four + One;
-    TinyFloat Eight = Four + Four;
-    TinyFloat Nine = Three * Three;
-    TinyFloat TwentySeven = Nine * Three;
-    TinyFloat ThirtyTwo = Four * Eight;
-    TinyFloat TwoForty = Four * Five * Three * Four;
-    TinyFloat MinusOne = -One;
-    TinyFloat Half = One / Two;
-    TinyFloat OneAndHalf = One + Half;
+    const FLOAT Zero = 0;
+    const FLOAT One = 1;
+    const FLOAT Two = One + One;
+    const FLOAT Three = Two + One;
+    const FLOAT Four = Three + One;
+    const FLOAT Five = Four + One;
+    const FLOAT Eight = Four + Four;
+    const FLOAT Nine = Three * Three;
+    const FLOAT TwentySeven = Nine * Three;
+    const FLOAT ThirtyTwo = Four * Eight;
+    const FLOAT TwoForty = Four * Five * Three * Four;
+    const FLOAT MinusOne = -One;
+    const FLOAT Half = One / Two;
+    FLOAT OneAndHalf = One + Half;
 
     std::cout << "Program is now RUNNING tests on small integers:" << std::endl;
 
@@ -53,18 +60,18 @@ int main() {
     TstCond( Failure, (One > Zero),          "1 <= 0"   );
     TstCond( Failure, (One + One == Two),    "1+1 != 2" );
 
-    TinyFloat Z = - Zero;
-    TstCond( Failure, (Z == 0.0f), "-0.0 != 0.0" );
+    FLOAT Z = - Zero;
+    TstCond( Failure, (Z == (FLOAT)0.0f), "-0.0 != 0.0" );
 
     TstCond ( Failure, (Three == Two + One),           "3 != 2+1" );
     TstCond ( Failure, (Four == Three + One),          "4 != 3+1" );
     TstCond ( Failure, (Four + Two * (- Two) == Zero), "4+2*(-2) != 0" );
     TstCond ( Failure, (Four - Three - One == Zero),   "4-3-1 != 0" );
 
-    TstCond ( Failure, (MinusOne == (0 - One)), "-1 != 0 - 1");
+    TstCond ( Failure, (MinusOne == ((FLOAT)0 - One)), "-1 != 0 - 1");
     TstCond ( Failure, (MinusOne + One == Zero ), "-1+1 != 0");
     TstCond ( Failure, (One + MinusOne == Zero), "1+(-1) != 0");
-    TstCond ( Failure, (MinusOne + fabs(One) == Zero), "(-1)+abs(1) != 0");
+    TstCond ( Failure, (MinusOne + (FLOAT)fabsf(One) == Zero), "(-1)+abs(1) != 0");
     TstCond ( Failure, (MinusOne + MinusOne * MinusOne == Zero), "-1+(-1)*(-1) != 0");
 
     TstCond (Failure, Half + MinusOne + Half == Zero, "1/2 + (-1) + 1/2 != 0");
@@ -86,25 +93,29 @@ int main() {
         std::cout <<  "-1, 0, 1/2, 1, 2, 3, 4, 5, 9, 27, 32 & 240 are O.K." << std::endl << std::endl;
 
     std::cerr << "Searching for Radix and Precision." << std::endl;
-    TinyFloat W = One;
-    TinyFloat Y;
+    FLOAT W = One;
+    FLOAT Y;
     do {
+        std::cerr << "W = " << W << std::endl;
         W = W + W;
         Y = W + One;
         Z = Y - W;
         Y = Z - One;
-    } while (MinusOne + fabs(Y) < Zero);
+    std::cerr << "Y = " << Y << " |Y| = " << float(Y) << ":" <<  (FLOAT)fabsf(Y) << std::endl;
+    } while (MinusOne + (FLOAT)fabsf(Y) < Zero);
+    std::cerr << "W = " << W << std::endl;
 
     // Now W is just big enough that |((W+1)-W)-1| >= 1.
 
-    TinyFloat Radix;
-    TinyFloat Precision = Zero;
+    FLOAT Radix;
+    FLOAT Precision = Zero;
     Y = One;
     do {
         Radix = W + Y;
+        std::cerr << "Radix = " << Radix << std::endl;
         Y = Y + Y;
         Radix = Radix - W;
-    } while ( Radix == Zero);
+    } while (Radix == Zero);
 
     std::cerr << "Radix = " << Radix << std::endl;
     std::cerr << "Two = " << Two << std::endl;
@@ -117,7 +128,7 @@ int main() {
 
     std::cerr << "Radix = " << Radix << std::endl;
 
-    if (Radix != 1) {
+    if (Radix != (FLOAT)1) {
         W = One;
         do {
             Precision = Precision + One;
@@ -128,23 +139,23 @@ int main() {
 
     // Now W == Radix^Precision is barely too big to satisfy (W+1)-W == 1
 
-    TinyFloat U1 = One / W;
-    TinyFloat U2 = Radix * U1;
+    FLOAT U1 = One / W;
+    FLOAT U2 = Radix * U1;
     std::cerr <<  "Closest relative separation found is U1 = " << U1 << std::endl << "Recalculating radix and precision" <<std::endl;
 
 
     //  save old values
 
-    TinyFloat E0 = Radix;
-    TinyFloat E1 = U1;
-    TinyFloat E9 = U2;
-    TinyFloat E3 = Precision;
+    FLOAT E0 = Radix;
+    FLOAT E1 = U1;
+    FLOAT E9 = U2;
+    FLOAT E3 = Precision;
 
-    TinyFloat X = Four / Three;
-    TinyFloat Third = X - One;
-    TinyFloat F6 = Half - Third;
+    FLOAT X = Four / Three;
+    FLOAT Third = X - One;
+    FLOAT F6 = Half - Third;
     X = F6 + F6;
-    X = fabs(X - Third);
+    X = (FLOAT)fabsf(X - Third);
     if (X < U2) X = U2;
 
     //  now X = (unknown no.) ulps of 1+
@@ -154,7 +165,7 @@ int main() {
         Y = Half * U2 + ThirtyTwo * U2 * U2;
         Y = One + Y;
         X = Y - One;
-    } while ( ! ((U2 <= X) || (X <= Zero)));  
+    } while ( ! ((U2 <= X) || (X <= Zero)));
 
     //  now U2 == 1 ulp of 1 +
 
@@ -162,14 +173,14 @@ int main() {
     F6 = X - Half;
     Third = F6 + F6;
     X = Third - Half;
-    X = fabs(X + F6);
+    X = (FLOAT)fabsf(X + F6);
 
     if ( X < U1 ) {
         X = U1;
     }
 
     //  now  X == (unknown no.) ulps of 1 -
-    std::cerr << U1 << " " << log(U1) << std::endl;
+    std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
 
     do  {
         U1 = X;
@@ -179,7 +190,7 @@ int main() {
         Y = Half - X;
         X = Half + Y;
     } while ( ! ((U1 <= X) || (X <= Zero)));
-    std::cerr << U1 << " " << log(U1) << std::endl;
+    std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
 
     //  now U1 == 1 ulp of 1 -
 
@@ -191,8 +202,8 @@ int main() {
 
 
     W = One / U1;
-    TinyFloat F9 = (Half - U1) + Half;
-    Radix = floor(0.01f + U2 / U1);
+    FLOAT F9 = (Half - U1) + Half;
+    Radix = (FLOAT)floorf((FLOAT)0.01f + U2 / U1);
 
     if ( Radix == E0 ) {
         std:: cout <<  "Radix confirmed." << std::endl;
@@ -201,12 +212,12 @@ int main() {
     }
 
     TstCond (Defect, Radix <= Eight + Eight, "Radix is too big: roundoff problems");
-    TstCond (Flaw, (Radix == Two) || (Radix == 10) || (Radix == One), "Radix is not as good as 2 or 10");
+    TstCond (Flaw, (Radix == Two) || (Radix == (FLOAT)10) || (Radix == One), "Radix is not as good as 2 or 10");
 
 
     TstCond (Failure, F9 - Half < Half, "(1-U1)-1/2 < 1/2 is FALSE, prog. fails?");
     X = F9;
-    TinyFloat I = 1;
+    FLOAT I = 1;
     Y = X - Half;
     Z = Y - Half;
     TstCond (Failure, (X != One) || (Z == Zero), "Comparison is fuzzy,X=1 but X-1/2-1/2 != 0");
@@ -214,24 +225,24 @@ int main() {
     I = 0;
 
     /*... BMinusU2 = nextafter(Radix, 0) */
-    TinyFloat BMinusU2 = Radix - One;
+    FLOAT BMinusU2 = Radix - One;
     BMinusU2 = (BMinusU2 - U2) + One;
     /* 
        Purify Integers.
        */
     if (Radix != One) {
-        X = - TwoForty * log(U1) / log(Radix);
-        std::cerr << U1 << " " << log(U1) << std::endl;
-        std::cerr << Radix << " " << log(Radix) << std::endl;
+        X = - TwoForty * (FLOAT)logf(U1) / (FLOAT)logf(Radix);
+        std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
+        std::cerr << Radix << " " << (FLOAT)logf(Radix) << std::endl;
 
-        Y = floor(Half + X);
-        if (fabs(X - Y) * Four < One) X = Y;
+        Y = (FLOAT)floorf(Half + X);
+        if ((FLOAT)fabsf(X - Y) * Four < One) X = Y;
         Precision = X / TwoForty;
-        Y = floor(Half + Precision);
-        if (fabs(Precision - Y) * TwoForty < Half) Precision = Y;
+        Y = (FLOAT)floorf(Half + Precision);
+        if ((FLOAT)fabsf(Precision - Y) * TwoForty < Half) Precision = Y;
     }
 
-    if ((Precision != floor(Precision)) || (Radix == One))
+    if ((Precision != (FLOAT)floorf(Precision)) || (Radix == One))
     {
         printf("Precision cannot be characterized by an Integer number\n");
         printf("of significant digits but, by itself, this is a minor flaw.\n");
