@@ -34,12 +34,11 @@ bool operator> (const TinyFloat& lhs, const TinyFloat& rhs);
 
 TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs);
 
-/*
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator-(const TinyFloat &f);
-*/
+
 
 /*
 TinyFloat fabs(const TinyFloat &f);

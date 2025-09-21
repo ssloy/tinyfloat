@@ -51,7 +51,7 @@ int main() {
     const FLOAT TwoForty = Four * Five * Three * Four;
     const FLOAT MinusOne = -One;
     const FLOAT Half = One / Two;
-    FLOAT OneAndHalf = One + Half;
+    const FLOAT OneAndHalf = One + Half;
 
     std::cout << "Program is now RUNNING tests on small integers:" << std::endl;
 
@@ -92,18 +92,15 @@ int main() {
     if (ErrCnt[Failure] == 0)
         std::cout <<  "-1, 0, 1/2, 1, 2, 3, 4, 5, 9, 27, 32 & 240 are O.K." << std::endl << std::endl;
 
-    std::cerr << "Searching for Radix and Precision." << std::endl;
+    std::cout << "Searching for Radix and Precision." << std::endl;
     FLOAT W = One;
     FLOAT Y;
     do {
-        std::cerr << "W = " << W << std::endl;
         W = W + W;
         Y = W + One;
         Z = Y - W;
         Y = Z - One;
-    std::cerr << "Y = " << Y << " |Y| = " << float(Y) << ":" <<  (FLOAT)fabsf(Y) << std::endl;
     } while (MinusOne + (FLOAT)fabsf(Y) < Zero);
-    std::cerr << "W = " << W << std::endl;
 
     // Now W is just big enough that |((W+1)-W)-1| >= 1.
 
@@ -112,21 +109,15 @@ int main() {
     Y = One;
     do {
         Radix = W + Y;
-        std::cerr << "Radix = " << Radix << std::endl;
         Y = Y + Y;
         Radix = Radix - W;
     } while (Radix == Zero);
-
-    std::cerr << "Radix = " << Radix << std::endl;
-    std::cerr << "Two = " << Two << std::endl;
-
-    std::cerr << ( Radix < Two ) << std::endl;
 
     if ( Radix < Two ) {
         Radix = One;
     }
 
-    std::cerr << "Radix = " << Radix << std::endl;
+    std::cout << "Radix = " << Radix << std::endl;
 
     if (Radix != (FLOAT)1) {
         W = One;
@@ -141,8 +132,7 @@ int main() {
 
     FLOAT U1 = One / W;
     FLOAT U2 = Radix * U1;
-    std::cerr <<  "Closest relative separation found is U1 = " << U1 << std::endl << "Recalculating radix and precision" <<std::endl;
-
+    std::cout <<  "Closest relative separation found is U1 = " << U1 << std::endl << "Recalculating radix and precision" <<std::endl;
 
     //  save old values
 
@@ -180,7 +170,6 @@ int main() {
     }
 
     //  now  X == (unknown no.) ulps of 1 -
-    std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
 
     do  {
         U1 = X;
@@ -190,7 +179,6 @@ int main() {
         Y = Half - X;
         X = Half + Y;
     } while ( ! ((U1 <= X) || (X <= Zero)));
-    std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
 
     //  now U1 == 1 ulp of 1 -
 
@@ -214,7 +202,6 @@ int main() {
     TstCond (Defect, Radix <= Eight + Eight, "Radix is too big: roundoff problems");
     TstCond (Flaw, (Radix == Two) || (Radix == (FLOAT)10) || (Radix == One), "Radix is not as good as 2 or 10");
 
-
     TstCond (Failure, F9 - Half < Half, "(1-U1)-1/2 < 1/2 is FALSE, prog. fails?");
     X = F9;
     FLOAT I = 1;
@@ -232,8 +219,6 @@ int main() {
        */
     if (Radix != One) {
         X = - TwoForty * (FLOAT)logf(U1) / (FLOAT)logf(Radix);
-        std::cerr << U1 << " " << (FLOAT)logf(U1) << std::endl;
-        std::cerr << Radix << " " << (FLOAT)logf(Radix) << std::endl;
 
         Y = (FLOAT)floorf(Half + X);
         if ((FLOAT)fabsf(X - Y) * Four < One) X = Y;
@@ -242,19 +227,18 @@ int main() {
         if ((FLOAT)fabsf(Precision - Y) * TwoForty < Half) Precision = Y;
     }
 
-    if ((Precision != (FLOAT)floorf(Precision)) || (Radix == One))
-    {
-        printf("Precision cannot be characterized by an Integer number\n");
-        printf("of significant digits but, by itself, this is a minor flaw.\n");
+    if ((Precision != (FLOAT)floorf(Precision)) || (Radix == One)) {
+        std::cout << "Precision cannot be characterized by an Integer number" << std::endl;
+        std::cout << "of significant digits but, by itself, this is a minor flaw." << std::endl;
     }
 
     if (Radix == One) {
-        printf("logarithmic encoding has precision characterized solely by U1.\n");
+        std::cout << "logarithmic encoding has precision characterized solely by U1." << std::endl;
     } else {
         std::cout << "The number of significant digits of the Radix is "<< Precision << "." << std::endl;
     }
 
-    TstCond (Serious, U2 * Nine * Nine * TwoForty < One, "Precision worse than 5 decimal figures  ");
+    TstCond(Serious, U2 * Nine * Nine * TwoForty < One, "Precision worse than 5 decimal figures  ");
 
 
     return 0;

@@ -138,7 +138,6 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
         negative = false;
     return {negative, a.exponent, mantissa};
 }
-/*
 
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs) {
     TinyFloat f(!rhs.negative, rhs.exponent, rhs.mantissa);
@@ -200,7 +199,6 @@ TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs) {
 TinyFloat operator-(const TinyFloat &f) {
     return {!f.negative, f.exponent, f.mantissa};
 }
-*/
 
 #if 0
 
