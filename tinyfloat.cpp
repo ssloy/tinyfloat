@@ -1,5 +1,4 @@
 #include <bit>
-#include <limits>
 #include <cassert>
 #include "tinyfloat.h"
 #include "printer.h"
@@ -9,10 +8,16 @@ TinyFloat normalized(TinyFloat f) {
         f.mantissa = f.mantissa * 2;
         f.exponent = f.exponent - 1;
     }
-    while (f.mantissa >= (1<<24) && f.exponent < 127) {
+    while (f.mantissa >= (1<<24) || f.exponent < -126) { // TODO smth in these lines above
+        if (f.exponent >= 127) {
+            f.mantissa = 0;
+            f.exponent = 128;
+            break;
+        }
         f.mantissa = f.mantissa / 2;
         f.exponent = f.exponent + 1;
     }
+
     return f;
 }
 
@@ -41,9 +46,9 @@ TinyFloat::TinyFloat(float f) { // nan/inf are correctly handled
     exponent = raw_exponent - 127;
     mantissa = raw_mantissa;
 
-    if (exponent==-127) { // zero or subnormal
+    if (exponent==-127) // zero or subnormal
         exponent++;
-    } else if (exponent<128) // normal, recover the hidden bit = 1
+    else if (exponent<128) // normal, recover the hidden bit = 1
         mantissa = raw_mantissa + (1<<23);
 }
 
@@ -53,7 +58,7 @@ TinyFloat::operator float() const { // nan/inf are correctly handled
     uint32_t raw_mantissa = mantissa % (1<<23); // clear the hidden bit
     if (exponent==-126 && mantissa<(1<<23))
         raw_exponent = 0; // zero or subnormal
-    return std::bit_cast<float>((sign_bit<<31) | (raw_exponent<<23) | raw_mantissa);
+    return std::bit_cast<float>((sign_bit<<31) + (raw_exponent<<23) + raw_mantissa);
 }
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f) {
@@ -112,16 +117,20 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
     if (a.isinf()) return a;
     if (b.isinf()) return b;
 
-    if (a.mantissa == 0 && b.mantissa==0 && a.exponent==-126 && b.exponent==-126) // handle zeros
+    if (a.mantissa == 0 && b.mantissa==0/* && a.exponent==-126 && b.exponent==-126*/) // handle zeros
         return {(a.negative == b.negative) ? a.negative : false, -126, 0};        // if signs differ, result is +0
 
     if (a.exponent < b.exponent)
         std::swap(a, b);
 
-    uint8_t grs = 0;
+    a.exponent -= 3;
+    b.exponent -= 3;
+    a.mantissa *= 8;
+    b.mantissa *= 8;
+
     while (a.exponent > b.exponent) {
-        grs = (b.mantissa%2)*4 + ((grs/2) | (grs%2));
-        b.mantissa /=  2;
+        b.mantissa = (b.mantissa/2) | (b.mantissa%2);
+//      b.mantissa /= 2;
         b.exponent++;
     }
 
@@ -139,10 +148,42 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
             mantissa = b.mantissa - a.mantissa;
         }
     }
+
+    while (mantissa < (1<<(23+3)) && a.exponent > -126-3) { // TODO decide what to do if the normalization does not work
+        mantissa = mantissa * 2;
+        a.exponent = a.exponent - 1;
+        // TODO underflow?
+    }
+
+    while (mantissa >= (1<<(24+3)) ) {
+        mantissa = (mantissa / 2) | (mantissa % 2);
+        a.exponent = a.exponent + 1;
+    }
+
+    uint32_t g = (mantissa >> 2) & 1;
+    uint32_t r = (mantissa >> 1) & 1;
+    uint32_t s = (mantissa & 1);
+
+    mantissa /= 8;
+    a.exponent += 3;
+
+    if (g && (r | s | (mantissa & 1))) {
+        mantissa++;
+        if (mantissa == (1u << 24)) {
+            mantissa >>= 1;
+            a.exponent++;
+        }
+    }
+
+    if (a.exponent >= 128) {
+        mantissa = 0;
+        a.exponent = 128;
+    }
+
     // When the sum of two operands with opposite signs (or the difference of two operands with like signs) is exactly zero, the sign of that sum (or difference) shall be +0
     if (!mantissa)
         negative = false;
-    return normalized({negative, a.exponent, mantissa});
+    return {negative, a.exponent, mantissa};
 }
 
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs) {

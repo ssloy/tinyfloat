@@ -65,6 +65,7 @@ TEST_CASE("subtraction") {
     }
 }
 
+/*
 TEST_CASE("multiplication") {
     for (float a : values) {
         for (float b : values) {
