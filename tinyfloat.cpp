@@ -181,7 +181,7 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
     }
 
     // When the sum of two operands with opposite signs (or the difference of two operands with like signs) is exactly zero, the sign of that sum (or difference) shall be +0
-    if (!mantissa)
+    if (!mantissa && a.exponent<128)
         negative = false;
     return {negative, a.exponent, mantissa};
 }
