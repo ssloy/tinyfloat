@@ -3,7 +3,7 @@
 #include "tinyfloat.h"
 #include "printer.h"
 
-TinyFloat normalized(TinyFloat f) {
+TinyFloat normalized(TinyFloat f) { // TODO remove this
     while (f.mantissa < (1<<23) && f.exponent > -126) {
         f.mantissa = f.mantissa * 2;
         f.exponent = f.exponent - 1;
@@ -231,42 +231,53 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
     return { negative, exponent, mantissa };
 }
 
-TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs) {
-    TinyFloat a = lhs; // TODO edge cases
-    TinyFloat b = rhs;
+TinyFloat operator/(const TinyFloat &a, const TinyFloat &b) {
+    if (a.isnan() || b.isnan() || (a.isinf() && b.isinf()) || (!a.mantissa && !b.mantissa))
+        return TinyFloat::nan();
 
-    if (!a.mantissa) {
-        return 0;
-    }
+    bool negative = a.negative != b.negative;
+    if (a.isinf() || !b.mantissa)
+        return TinyFloat::inf(negative);
+
+    if (!a.mantissa || b.isinf())
+        return TinyFloat::zero(negative);
+
+    assert(a.isfinite() && b.isfinite() && a.mantissa && b.mantissa);
 
     uint32_t mantissa  = a.mantissa / b.mantissa;
     uint32_t remainder = a.mantissa % b.mantissa;
-    int16_t  exponent  = a.exponent - b.exponent - 1 + 24;
+    int16_t  exponent  = a.exponent - b.exponent + 23;
 
-    if (!mantissa) { // TODO: meh
-        mantissa = 1;
-        exponent--;
+    while (mantissa < (1u<<23) && exponent > -126) { // normalize the result
         remainder *= 2;
-        if (remainder >= b.mantissa) {
-            remainder -= b.mantissa;
-        }
+        mantissa = mantissa * 2 + remainder / b.mantissa;
+        remainder = remainder % b.mantissa;
+        exponent--;
     }
-    while (mantissa < 8388608) {
-        mantissa = mantissa * 2;
-        remainder = remainder * 2;
-        exponent = exponent - 1;
-        if (remainder >= b.mantissa) {
-            mantissa++;
-            remainder -= b.mantissa;
+
+    while (exponent < -126) {
+        remainder = (remainder/2 + (mantissa%2)*b.mantissa) | (remainder%2); // LSB is sticky
+        mantissa /= 2;
+        exponent++;
+    }
+
+    if (remainder*2 > b.mantissa || (remainder*2==b.mantissa && mantissa%2)) {
+        mantissa++;
+        if (mantissa == (1u<<24)) {    // renormalize if necessary
+            mantissa /= 2;
+            exponent++;
         }
     }
 
-    return normalized({!a.negative != !b.negative, exponent, mantissa});
+    if (exponent >= 128)               // handle overflow
+        return TinyFloat::inf(negative);
+
+    return { negative, exponent, mantissa };
 }
 
 TinyFloat operator-(const TinyFloat &f) {
     if (f.isnan()) return f;
-    return {!f.negative, f.exponent, f.mantissa}; // no normalization
+    return { !f.negative, f.exponent, f.mantissa };
 }
 
 

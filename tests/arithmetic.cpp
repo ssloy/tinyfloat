@@ -83,10 +83,10 @@ TEST_CASE("multiplication") {
     }
 }
 
-/*
 TEST_CASE("division") {
     for (float a : values) {
         for (float b : values) {
+          if (b==0 || std::isinf(b)) continue;
             TinyFloat sa(a);
             TinyFloat sb(b);
             float ref = a / b;
@@ -101,7 +101,6 @@ TEST_CASE("division") {
         }
     }
 }
-*/
 
 TEST_CASE("negation") {
     for (float a : values) {
