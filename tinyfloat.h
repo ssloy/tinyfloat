@@ -20,9 +20,9 @@ struct TinyFloat {
     bool isfinite() const { return !isnan() && !isinf(); }
     bool isnormal() const { return isfinite() && mantissa >= (1u<<23); }
 
-    static TinyFloat zero() { return {false, -126,          0}; }
-    static TinyFloat nan()  { return {false,  128, (1u<<24)-1}; }
-    static TinyFloat inf(bool negative = false) { return {negative, 128, 0}; }
+    static TinyFloat  nan() { return {false,  128, (1u<<24)-1}; }
+    static TinyFloat  inf(bool negative = false) { return {negative,  128, 0}; }
+    static TinyFloat zero(bool negative = false) { return {negative, -126, 0}; }
 };
 
 std::ostream& operator<<(std::ostream& out, const TinyFloat& f);

@@ -20,8 +20,8 @@ float values[] = {
     std::nextafterf(1.0f, 2.0f), // just above 1.0
     std::ldexp(1.0f, -126),      // smallest normal
     std::ldexp(1.0f, -149),      // smallest subnormal
-    1e20f,                       // large finite
-    -1e20f,
+    1e30f,                       // large finite
+    -1e30f,
     std::numeric_limits<float>::max(),
     -std::numeric_limits<float>::max(),
     std::numeric_limits<float>::infinity(),
@@ -65,7 +65,6 @@ TEST_CASE("subtraction") {
     }
 }
 
-/*
 TEST_CASE("multiplication") {
     for (float a : values) {
         for (float b : values) {

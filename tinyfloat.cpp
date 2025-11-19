@@ -4,11 +4,11 @@
 #include "printer.h"
 
 TinyFloat normalized(TinyFloat f) {
-    while (f.mantissa < (1<<23) && f.exponent > -126) { // TODO decide what to do if the normalization does not work
+    while (f.mantissa < (1<<23) && f.exponent > -126) {
         f.mantissa = f.mantissa * 2;
         f.exponent = f.exponent - 1;
     }
-    while (f.mantissa >= (1<<24) || f.exponent < -126) { // TODO smth in these lines above
+    while (f.mantissa >= (1<<24) || f.exponent < -126) {
         if (f.exponent >= 127) {
             f.mantissa = 0;
             f.exponent = 128;
@@ -74,7 +74,7 @@ std::ostream& operator<<(std::ostream& out, const TinyFloat& f) {
 
 bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
     if (lhs.isnan() || rhs.isnan()) return false;  // NaNs are unordered
-    if (lhs.isfinite() && rhs.isfinite() && lhs.mantissa == 0 && rhs.mantissa==0) return true; // +0 = -0
+    if (lhs.isfinite() && rhs.isfinite() && !lhs.mantissa && !rhs.mantissa) return true; // +0 = -0
     return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
 }
 
@@ -117,39 +117,37 @@ TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
     if (a.isinf()) return a;
     if (b.isinf()) return b;
 
-    if (a.mantissa == 0 && b.mantissa==0)                                   // handle zeros
-        return {(a.negative == b.negative) ? a.negative : false, -126, 0};  // if signs differ, result is +0
+    if (!a.mantissa && !b.mantissa)                       // handle zeros
+        return TinyFloat::zero(a.negative && b.negative); // if signs differ, result is +0
 
     if (a.exponent < b.exponent)
         std::swap(a, b);
 
-    a.mantissa *= 8;                              // reserve place for GRS bits
+    a.mantissa *= 8;                                  // reserve place for GRS bits
     b.mantissa *= 8;
 
-    while (a.exponent > b.exponent) {             // align exponents
-        b.mantissa = b.mantissa/2 + b.mantissa%2; // LSB is sticky
+    while (a.exponent > b.exponent) {                 // align exponents
+        b.mantissa = (b.mantissa/2) | (b.mantissa%2); // LSB is sticky
         b.exponent++;
     }
 
     TinyFloat sum = { a.mantissa >= b.mantissa ? a.negative : b.negative, a.exponent, 0 };
 
-    if (a.negative == b.negative) {
+    if (a.negative == b.negative)
         sum.mantissa = a.mantissa + b.mantissa;
-    } else {
-        if (a.mantissa >= b.mantissa) {
+    else
+        if (a.mantissa >= b.mantissa)
             sum.mantissa = a.mantissa - b.mantissa;
-        } else {
+        else
             sum.mantissa = b.mantissa - a.mantissa;
-        }
-    }
 
     while (sum.mantissa < (1u<<(23+3)) && sum.exponent > -126) { // normalize the result
         sum.mantissa *= 2;
         sum.exponent--;
     }
 
-    while (sum.mantissa >= (1u<<(24+3)) ) {             // can't be more than one iteration
-        sum.mantissa = sum.mantissa/2 + sum.mantissa%2; // do not forget the sticky bit
+    while (sum.mantissa >= (1u<<(24+3))) {                  // can't be more than one iteration
+        sum.mantissa = (sum.mantissa/2) | (sum.mantissa%2); // do not forget the sticky bit
         sum.exponent++;
     }
 
@@ -185,12 +183,18 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
     if (a.isnan() || b.isnan())
         return TinyFloat::nan();
     if (a.isinf() || b.isinf()) {
-        if ((a.mantissa==0 && a.exponent==-126) || (b.mantissa==0 && b.exponent==-126)) return TinyFloat::nan();
-        return {a.negative != b.negative, 128, 0};
+        if ((a.isfinite() && !a.mantissa) || (b.isfinite() && !b.mantissa)) // inf * 0 = nan
+            return TinyFloat::nan();
+        return TinyFloat::inf(a.negative != b.negative);
     }
+    if (!a.mantissa || !b.mantissa)
+        return TinyFloat::zero(a.negative != b.negative);
+
+    int16_t exponent = a.exponent + b.exponent + 1; // +1 comes from the separation of a.mantissa * b.mantissa into two 24-bit variables
+    bool negative = a.negative != b.negative;
 
     uint32_t a_hi = a.mantissa / 4096; // multiply 2 24-bit mantissas
-    uint32_t a_lo = a.mantissa % 4096; // into two 24-bit halves mantissa_high, mantissa_low
+    uint32_t a_lo = a.mantissa % 4096; // into two 24-bit halves mantissa, mantissa_low
     uint32_t b_hi = b.mantissa / 4096;
     uint32_t b_lo = b.mantissa % 4096;
     uint32_t hihi = a_hi * b_hi;
@@ -198,11 +202,33 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
     uint32_t lohi = a_lo * b_hi;
     uint32_t lolo = a_lo * b_lo;
     uint32_t mantissa_low = lolo + (hilo%4096 + lohi%4096)*4096;
-    uint32_t mantissa_high = hihi + hilo/4096 + lohi/4096 + mantissa_low/16777216;
+    uint32_t mantissa = hihi +  hilo/4096 + lohi/4096 + mantissa_low/16777216;
     mantissa_low = mantissa_low % 16777216;
 
+    while (mantissa < (1u<<23) && exponent > -126) { // normalize the result
+        mantissa = mantissa*2 + mantissa_low / 8388608;
+        mantissa_low = (mantissa_low*2) % 16777216;
+        exponent--;
+    }
 
-    return normalized({!a.negative != !b.negative, static_cast<int16_t>(a.exponent + b.exponent + 1), mantissa_high});
+    while (exponent < -126) {
+        mantissa_low = ((mantissa_low / 2 + (mantissa % 2) * 8388608)) | (mantissa_low % 2); // LSB is sticky
+        mantissa /= 2;
+        exponent++;
+    }
+
+    if (mantissa_low / 8388608 && (mantissa_low % 8388608 || mantissa % 2)) {
+        mantissa++;
+        if (mantissa == (1u<<24)) {    // renormalize if necessary
+            mantissa /= 2;
+            exponent++;
+        }
+    }
+
+    if (exponent >= 128)               // handle overflow
+        return TinyFloat::inf(negative);
+
+    return { negative, exponent, mantissa };
 }
 
 TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs) {
@@ -239,8 +265,7 @@ TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs) {
 }
 
 TinyFloat operator-(const TinyFloat &f) {
-    if (f.isnan()/* || (f.mantissa==0 && f.exponent==-126)*/ ) return f;
-//std::cerr << f << ": " << f.exponent << " " << f.mantissa << std::endl;
+    if (f.isnan()) return f;
     return {!f.negative, f.exponent, f.mantissa}; // no normalization
 }
 

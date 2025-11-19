@@ -26,7 +26,7 @@ TEST_CASE("comparisons") {
         std::numeric_limits<float>::quiet_NaN()
     };
 
-    for (float a : vals) {
+    for (float a : vals)
         for (float b : vals) {
             TinyFloat sa(a);
             TinyFloat sb(b);
@@ -40,23 +40,18 @@ TEST_CASE("comparisons") {
 
             bool s_eq = (sa == sb);
             bool s_ne = (sa != sb);
-            bool s_lt = (sa < sb);
+            bool s_lt = (sa <  sb);
             bool s_le = (sa <= sb);
-            bool s_gt = (sa > sb);
+            bool s_gt = (sa >  sb);
             bool s_ge = (sa >= sb);
 
-            if (std::isnan(a) || std::isnan(b)) { // for NaNs: only "!=" is true, everything else must be false
-                CHECK( (!s_eq && s_ne && !s_lt && !s_le && !s_gt && !s_ge) );
-            } else {
-                CHECK(eq == s_eq);
-                CHECK(ne == s_ne);
-                CHECK(lt == s_lt);
-                CHECK(le == s_le);
-                CHECK(gt == s_gt);
-                CHECK(ge == s_ge);
-            }
+            CHECK(eq == s_eq);
+            CHECK(ne == s_ne);
+            CHECK(lt == s_lt);
+            CHECK(le == s_le);
+            CHECK(gt == s_gt);
+            CHECK(ge == s_ge);
 
         }
-    }
 }
 
