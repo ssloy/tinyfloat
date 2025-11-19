@@ -61,16 +61,16 @@ int main() {
     TstCond( Failure, (One + One == Two),    "1+1 != 2" );
 
     FLOAT Z = - Zero;
-    TstCond( Failure, (Z == (FLOAT)0.0f), "-0.0 != 0.0" );
+    TstCond( Failure, (Z == Zero), "-0.0 != 0.0" );
 
     TstCond ( Failure, (Three == Two + One),           "3 != 2+1" );
     TstCond ( Failure, (Four == Three + One),          "4 != 3+1" );
     TstCond ( Failure, (Four + Two * (- Two) == Zero), "4+2*(-2) != 0" );
     TstCond ( Failure, (Four - Three - One == Zero),   "4-3-1 != 0" );
 
-    TstCond ( Failure, (MinusOne == ((FLOAT)0 - One)), "-1 != 0 - 1");
-    TstCond ( Failure, (MinusOne + One == Zero ), "-1+1 != 0");
-    TstCond ( Failure, (One + MinusOne == Zero), "1+(-1) != 0");
+    TstCond ( Failure, (MinusOne == (Zero - One)), "-1 != 0 - 1");
+    TstCond ( Failure, (MinusOne + One == Zero),   "-1+1 != 0");
+    TstCond ( Failure, (One + MinusOne == Zero),   "1+(-1) != 0");
     TstCond ( Failure, (MinusOne + (FLOAT)fabsf(One) == Zero), "(-1)+abs(1) != 0");
     TstCond ( Failure, (MinusOne + MinusOne * MinusOne == Zero), "-1+(-1)*(-1) != 0");
 
@@ -119,7 +119,7 @@ int main() {
 
     std::cout << "Radix = " << Radix << std::endl;
 
-    if (Radix != (FLOAT)1) {
+    if (Radix != One) {
         W = One;
         do {
             Precision = Precision + One;
@@ -191,7 +191,7 @@ int main() {
 
     W = One / U1;
     FLOAT F9 = (Half - U1) + Half;
-    Radix = (FLOAT)floorf((FLOAT)0.01f + U2 / U1);
+    Radix = (FLOAT)floorf((FLOAT)0.01f + U2 / U1); // TODO
 
     if ( Radix == E0 ) {
         std:: cout <<  "Radix confirmed." << std::endl;
