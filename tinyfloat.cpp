@@ -72,9 +72,9 @@ std::ostream& operator<<(std::ostream& out, const TinyFloat& f) {
     return out;
 }
 
-bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) { // TODO if mantissa is zero, should I care to check the exponents?
+bool operator==(const TinyFloat& lhs, const TinyFloat& rhs) {
     if (lhs.isnan() || rhs.isnan()) return false;  // NaNs are unordered
-    if (lhs.mantissa == 0 && rhs.mantissa==0 && lhs.exponent==-126 && rhs.exponent==-126) return true; // +0 = -0
+    if (lhs.isfinite() && rhs.isfinite() && lhs.mantissa == 0 && rhs.mantissa==0) return true; // +0 = -0
     return lhs.mantissa == rhs.mantissa && lhs.exponent == rhs.exponent && lhs.negative == rhs.negative;
 }
 
@@ -107,83 +107,71 @@ bool operator>=(const TinyFloat& lhs, const TinyFloat& rhs) {
 TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs) {
     TinyFloat a = lhs;
     TinyFloat b = rhs;
+
     if (a.isnan() || b.isnan())
         return TinyFloat::nan();
-
     if (a.isinf() && b.isinf()) {
         if (a.negative == b.negative) return a; // same sign infinity
-        return TinyFloat::nan();                // inf + -inf = NaN
+        return TinyFloat::nan();                // inf + -inf = nan
     }
     if (a.isinf()) return a;
     if (b.isinf()) return b;
 
-    if (a.mantissa == 0 && b.mantissa==0/* && a.exponent==-126 && b.exponent==-126*/) // handle zeros
-        return {(a.negative == b.negative) ? a.negative : false, -126, 0};        // if signs differ, result is +0
+    if (a.mantissa == 0 && b.mantissa==0)                                   // handle zeros
+        return {(a.negative == b.negative) ? a.negative : false, -126, 0};  // if signs differ, result is +0
 
     if (a.exponent < b.exponent)
         std::swap(a, b);
 
-    a.exponent -= 3;
-    b.exponent -= 3;
-    a.mantissa *= 8;
+    a.mantissa *= 8;                              // reserve place for GRS bits
     b.mantissa *= 8;
 
-    while (a.exponent > b.exponent) {
-        b.mantissa = (b.mantissa/2) | (b.mantissa%2);
-//      b.mantissa /= 2;
+    while (a.exponent > b.exponent) {             // align exponents
+        b.mantissa = b.mantissa/2 + b.mantissa%2; // LSB is sticky
         b.exponent++;
     }
 
-    bool negative;
-    uint32_t mantissa;
+    TinyFloat sum = { a.mantissa >= b.mantissa ? a.negative : b.negative, a.exponent, 0 };
 
-    negative = a.negative;
-    if (a.negative==b.negative) {
-        mantissa = a.mantissa + b.mantissa;
+    if (a.negative == b.negative) {
+        sum.mantissa = a.mantissa + b.mantissa;
     } else {
-        if (a.mantissa>=b.mantissa) {
-            mantissa = a.mantissa - b.mantissa;
+        if (a.mantissa >= b.mantissa) {
+            sum.mantissa = a.mantissa - b.mantissa;
         } else {
-            negative = !a.negative;
-            mantissa = b.mantissa - a.mantissa;
+            sum.mantissa = b.mantissa - a.mantissa;
         }
     }
 
-    while (mantissa < (1<<(23+3)) && a.exponent > -126-3) { // TODO decide what to do if the normalization does not work
-        mantissa = mantissa * 2;
-        a.exponent = a.exponent - 1;
-        // TODO underflow?
+    while (sum.mantissa < (1u<<(23+3)) && sum.exponent > -126) { // normalize the result
+        sum.mantissa *= 2;
+        sum.exponent--;
     }
 
-    while (mantissa >= (1<<(24+3)) ) {
-        mantissa = (mantissa / 2) | (mantissa % 2);
-        a.exponent = a.exponent + 1;
+    while (sum.mantissa >= (1u<<(24+3)) ) {             // can't be more than one iteration
+        sum.mantissa = sum.mantissa/2 + sum.mantissa%2; // do not forget the sticky bit
+        sum.exponent++;
     }
 
-    uint32_t g = (mantissa >> 2) & 1;
-    uint32_t r = (mantissa >> 1) & 1;
-    uint32_t s = (mantissa & 1);
+    uint32_t g = (sum.mantissa / 4) % 2;       // guard bit
+    uint32_t r = (sum.mantissa / 2) % 2;       // round bit
+    uint32_t s =  sum.mantissa % 2;            // sticky bit
+    sum.mantissa /= 8;
 
-    mantissa /= 8;
-    a.exponent += 3;
-
-    if (g && (r | s | (mantissa & 1))) {
-        mantissa++;
-        if (mantissa == (1u << 24)) {
-            mantissa >>= 1;
-            a.exponent++;
+    if (g && (r || s || (sum.mantissa % 2))) { // round-to-nearest, even-on-ties
+        sum.mantissa++;
+        if (sum.mantissa == (1u<<24)) {        // renormalize if necessary
+            sum.mantissa /= 2;
+            sum.exponent++;
         }
     }
 
-    if (a.exponent >= 128) {
-        mantissa = 0;
-        a.exponent = 128;
-    }
+    if (sum.exponent >= 128)               // handle overflow
+        return TinyFloat::inf(sum.negative);
 
-    // When the sum of two operands with opposite signs (or the difference of two operands with like signs) is exactly zero, the sign of that sum (or difference) shall be +0
-    if (!mantissa && a.exponent<128)
-        negative = false;
-    return {negative, a.exponent, mantissa};
+    if (!sum.mantissa)                     // When the sum of two operands with opposite signs (or the difference of two operands with like signs)
+        return TinyFloat::zero();          // is exactly zero, the sign of that sum (or difference) shall be +0
+    return sum;
 }
 
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs) {
@@ -192,8 +180,14 @@ TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs) {
 }
 
 TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
-    TinyFloat a = lhs; // TODO edge cases
+    TinyFloat a = lhs;
     TinyFloat b = rhs;
+    if (a.isnan() || b.isnan())
+        return TinyFloat::nan();
+    if (a.isinf() || b.isinf()) {
+        if ((a.mantissa==0 && a.exponent==-126) || (b.mantissa==0 && b.exponent==-126)) return TinyFloat::nan();
+        return {a.negative != b.negative, 128, 0};
+    }
 
     uint32_t a_hi = a.mantissa / 4096; // multiply 2 24-bit mantissas
     uint32_t a_lo = a.mantissa % 4096; // into two 24-bit halves mantissa_high, mantissa_low
@@ -206,6 +200,7 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
     uint32_t mantissa_low = lolo + (hilo%4096 + lohi%4096)*4096;
     uint32_t mantissa_high = hihi + hilo/4096 + lohi/4096 + mantissa_low/16777216;
     mantissa_low = mantissa_low % 16777216;
+
 
     return normalized({!a.negative != !b.negative, static_cast<int16_t>(a.exponent + b.exponent + 1), mantissa_high});
 }
