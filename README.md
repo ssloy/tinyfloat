@@ -4,7 +4,7 @@ This is a software 32-bit floating point implementation.
 While there are plenty soft floating point libraries in the wild, I am not satisfied with either of those.
 All of them are way too complex and pretty much undocumented.
 
-**Despite the focus on readability, there very few comments in the code. An extensive writing is [available here](https://haqr.eu/tinyfloat/).**
+**Despite the focus on readability, there are very few comments in the code. An extensive writing is [available here](https://haqr.eu/tinyfloat/).**
 
 This is a tiny project, the goal is to make a **simple and understandable** implementation of single-precision floating point.
 I do not care about efficiency as long as the code is simple.
@@ -12,16 +12,15 @@ The goal is twofold:
 
 * first, educate on how floating point works
 * second, provdide the code that can be ported to platforms without floating point.
-For example, I used it to create an eyecandy test for my [TinyCompiler project](https://haqr.eu/tinycompiler/):
-![](https://haqr.eu/tinycompiler/home/raytracer.png)
+  
+For example, I used it to create an eyecandy raytracer for my [TinyCompiler project](https://haqr.eu/tinycompiler/).
 
 ## Someone is wrong on the internet!
 
 ![](https://haqr.eu/tinyfloat/home/bad-news.jpg)
 
 Recently, I needed to emulate floating point operations using only integer arithmetic, since floats were unavailable.
-I went online to look for a ready-made library and almost drowned.
-Not only did I not find what I was looking for, but I also discovered that someone on the internet was wrong. :)
+I went online to look for a ready-made library and to my surprise, not only did I not find what I was looking for, but I also discovered that someone on the internet was wrong. :)
 
 It turns out that forums are full of people who don't fully understand how computers manipulate numbers.
 For example, I pulled the above meme from Reddit (it was me who crossed it out).
