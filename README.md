@@ -38,7 +38,7 @@ That is, to write the most unoptimized C++ library for emulating IEEE754 32-bit 
 ## Compilation & testing
 
 There are two kinds of tests in the project: [unit tests](https://github.com/ssloy/tinyfloat/tree/main/tests) where TinyFloat functions are tested against C++ native `float`.
-There is also a [truncated version](https://github.com/ssloy/tinyfloat/blob/main/paranoia.cpp) of PARANOIA,
+There is also a [truncated version](https://github.com/ssloy/tinyfloat/blob/main/tests/paranoia.cpp) of PARANOIA,
 a test suite written in Basic by William Kahan in 1983.
 Paranoia is designed to discover obvious flaws in non-compliant floating point arithmetic and it is [still used today](https://dl.acm.org/doi/10.1145/1179622.1179682)!
 
