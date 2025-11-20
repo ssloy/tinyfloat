@@ -27,7 +27,7 @@ include(CTest)
 enable_testing()
 add_subdirectory(tests)
 
-add_executable(paranoia paranoia.cpp)
+add_executable(paranoia tests/paranoia.cpp)
 target_link_libraries(paranoia PRIVATE ${CMAKE_DL_LIBS} tinyfloat)
 
 

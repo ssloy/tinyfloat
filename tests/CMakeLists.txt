@@ -8,7 +8,7 @@ FetchContent_Declare(
 
 FetchContent_MakeAvailable(Catch2)
 
-FILE(GLOB SRCTEST *.cpp)
+FILE(GLOB SRCTEST arithmetic.cpp comparisons.cpp printer.cpp roundtrip-float.cpp roundtrip-int.cpp)
 add_executable(tinyfloat-test-all ${SRCTEST})
 target_link_libraries(tinyfloat-test-all PRIVATE ${CMAKE_DL_LIBS} tinyfloat Catch2::Catch2WithMain)
 
