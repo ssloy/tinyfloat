@@ -193,31 +193,31 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
     int16_t exponent = a.exponent + b.exponent + 1; // +1 comes from the separation of a.mantissa * b.mantissa into two 24-bit variables
     bool negative = a.negative != b.negative;
 
-    uint32_t a_hi = a.mantissa / 4096; // multiply 2 24-bit mantissas
-    uint32_t a_lo = a.mantissa % 4096; // into two 24-bit halves mantissa, mantissa_low
-    uint32_t b_hi = b.mantissa / 4096;
-    uint32_t b_lo = b.mantissa % 4096;
+    uint32_t a_hi = a.mantissa / (1u<<12); // multiply 2 24-bit mantissas
+    uint32_t a_lo = a.mantissa % (1u<<12); // into two 24-bit halves mantissa, mantissa_low
+    uint32_t b_hi = b.mantissa / (1u<<12);
+    uint32_t b_lo = b.mantissa % (1u<<12);
     uint32_t hihi = a_hi * b_hi;
     uint32_t hilo = a_hi * b_lo;
     uint32_t lohi = a_lo * b_hi;
     uint32_t lolo = a_lo * b_lo;
-    uint32_t mantissa_low = lolo + (hilo%4096 + lohi%4096)*4096;
-    uint32_t mantissa = hihi +  hilo/4096 + lohi/4096 + mantissa_low/16777216;
-    mantissa_low = mantissa_low % 16777216;
+    uint32_t mantissa_low = lolo + (hilo % (1u<<12) + lohi % (1u<<12)) * (1u<<12);
+    uint32_t mantissa = hihi +  hilo / (1u<<12) + lohi / (1u<<12) + mantissa_low/(1u<<24);
+    mantissa_low = mantissa_low % (1u<<24);
 
     while (mantissa < (1u<<23) && exponent > -126) { // normalize the result
-        mantissa = mantissa*2 + mantissa_low / 8388608;
-        mantissa_low = (mantissa_low*2) % 16777216;
+        mantissa = mantissa * 2 + mantissa_low / (1u<<23);
+        mantissa_low = (mantissa_low * 2) % (1u<<24);
         exponent--;
     }
 
     while (exponent < -126) {
-        mantissa_low = ((mantissa_low / 2 + (mantissa % 2) * 8388608)) | (mantissa_low % 2); // LSB is sticky
+        mantissa_low = ((mantissa_low + (mantissa % 2) * (1u<<24))/2) | (mantissa_low % 2); // LSB is sticky
         mantissa /= 2;
         exponent++;
     }
 
-    if (mantissa_low / 8388608 && (mantissa_low % 8388608 || mantissa % 2)) {
+    if (mantissa_low / (1u<<23) && (mantissa_low % (1u<<23) || mantissa % 2)) {
         mantissa++;
         if (mantissa == (1u<<24)) {    // renormalize if necessary
             mantissa /= 2;
@@ -256,7 +256,7 @@ TinyFloat operator/(const TinyFloat &a, const TinyFloat &b) {
     }
 
     while (exponent < -126) {
-        remainder = (remainder/2 + (mantissa%2)*b.mantissa) | (remainder%2); // LSB is sticky
+        remainder = (remainder + (mantissa % 2)*b.mantissa)/2 | (remainder % 2); // LSB is sticky
         mantissa /= 2;
         exponent++;
     }
