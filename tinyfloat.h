@@ -11,7 +11,7 @@ struct TinyFloat {
     TinyFloat(const TinyFloat&) = default;
     TinyFloat& operator=(const TinyFloat&) = default;
 
-    TinyFloat(int); // casts
+    TinyFloat(int);
     TinyFloat(float);
     operator float() const;
 
@@ -20,7 +20,7 @@ struct TinyFloat {
     bool isfinite() const { return !isnan() && !isinf(); }
     bool isnormal() const { return isfinite() && mantissa >= (1u<<23); }
 
-    static TinyFloat  nan() { return {false,  128, (1u<<24)-1}; }
+    static TinyFloat  nan(uint32_t payload = (1u<<24)-1) { return {false,  128, payload}; }
     static TinyFloat  inf(bool negative = false) { return {negative,  128, 0}; }
     static TinyFloat zero(bool negative = false) { return {negative, -126, 0}; }
 };
@@ -35,16 +35,8 @@ bool operator< (const TinyFloat& lhs, const TinyFloat& rhs);
 bool operator> (const TinyFloat& lhs, const TinyFloat& rhs);
 
 TinyFloat operator+(const TinyFloat &lhs, const TinyFloat &rhs);
-
 TinyFloat operator-(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator/(const TinyFloat &lhs, const TinyFloat &rhs);
 TinyFloat operator-(const TinyFloat &f);
-
-
-/*
-TinyFloat fabs(const TinyFloat &f);
-TinyFloat floor(const TinyFloat &f);
-TinyFloat log(const TinyFloat &f);
-*/
 

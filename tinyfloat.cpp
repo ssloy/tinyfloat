@@ -3,44 +3,34 @@
 #include "tinyfloat.h"
 #include "printer.h"
 
-TinyFloat normalized(TinyFloat f) { // TODO remove this
-    while (f.mantissa < (1<<23) && f.exponent > -126) {
-        f.mantissa = f.mantissa * 2;
-        f.exponent = f.exponent - 1;
-    }
-    while (f.mantissa >= (1<<24) || f.exponent < -126) {
-        if (f.exponent >= 127) {
-            f.mantissa = 0;
-            f.exponent = 128;
-            break;
-        }
-        f.mantissa = f.mantissa / 2;
-        f.exponent = f.exponent + 1;
-    }
-
-    return f;
-}
-
-TinyFloat::TinyFloat(bool neg, int16_t exp, uint32_t mant) : negative(neg), exponent(exp), mantissa(mant) {
-}
+TinyFloat::TinyFloat(bool negative, int16_t exponent, uint32_t mantissa) : negative(negative), exponent(exponent), mantissa(mantissa) {}
 
 TinyFloat::TinyFloat(int i) {
-    negative = i<0;
-    exponent = 23;
-    mantissa = i<0? -i : i;
-    if (!mantissa) { // zero
-        negative = false;
-        exponent = -126;
+    if (!i) {
+        *this = TinyFloat::zero();
         return;
     }
-    *this = normalized({ negative, exponent, mantissa });
+
+    negative = i < 0;
+    exponent = 23;
+    mantissa = i < 0 ? -i : i;
+
+    while (mantissa < (1u<<23)) { // no need to check for exponent > -126
+        mantissa *= 2;
+        exponent--;
+    }
+
+    while (mantissa >= (1u<<24)) { // no need to check for exponent < 128
+        mantissa /= 2;
+        exponent++;
+    }
 }
 
 TinyFloat::TinyFloat(float f) { // nan/inf are correctly handled
     const uint32_t u = std::bit_cast<uint32_t>(f);
     uint32_t sign_bit     = (u >> 31) % 2;
     uint32_t raw_exponent = (u >> 23) % 256;
-    uint32_t raw_mantissa =  u % (1<<23);
+    uint32_t raw_mantissa =  u % (1u<<23);
 
     negative = sign_bit;
     exponent = raw_exponent - 127;
@@ -49,14 +39,14 @@ TinyFloat::TinyFloat(float f) { // nan/inf are correctly handled
     if (exponent==-127) // zero or subnormal
         exponent++;
     else if (exponent<128) // normal, recover the hidden bit = 1
-        mantissa = raw_mantissa + (1<<23);
+        mantissa = raw_mantissa + (1u<<23);
 }
 
 TinyFloat::operator float() const { // nan/inf are correctly handled
     uint32_t sign_bit = negative;
     uint32_t raw_exponent = exponent+127;
-    uint32_t raw_mantissa = mantissa % (1<<23); // clear the hidden bit
-    if (exponent==-126 && mantissa<(1<<23))
+    uint32_t raw_mantissa = mantissa % (1u<<23); // clear the hidden bit
+    if (exponent==-126 && mantissa<(1u<<23))
         raw_exponent = 0; // zero or subnormal
     return std::bit_cast<float>((sign_bit<<31) + (raw_exponent<<23) + raw_mantissa);
 }
@@ -217,7 +207,7 @@ TinyFloat operator*(const TinyFloat &lhs, const TinyFloat &rhs) {
         exponent++;
     }
 
-    if (mantissa_low / (1u<<23) && (mantissa_low % (1u<<23) || mantissa % 2)) {
+    if (mantissa_low / (1u<<23) && (mantissa_low % (1u<<23) || mantissa % 2)) { // round-to-nearest, even-on-ties
         mantissa++;
         if (mantissa == (1u<<24)) {    // renormalize if necessary
             mantissa /= 2;
@@ -256,12 +246,12 @@ TinyFloat operator/(const TinyFloat &a, const TinyFloat &b) {
     }
 
     while (exponent < -126) {
-        remainder = (remainder + (mantissa % 2)*b.mantissa)/2 | (remainder % 2); // LSB is sticky
+        remainder = (remainder + (mantissa % 2)*b.mantissa)/2 | (remainder % 2);   // LSB is sticky
         mantissa /= 2;
         exponent++;
     }
 
-    if (remainder*2 > b.mantissa || (remainder*2==b.mantissa && mantissa%2)) {
+    if (remainder*2 > b.mantissa || (remainder*2 == b.mantissa && mantissa % 2)) { // round-to-nearest, even-on-ties
         mantissa++;
         if (mantissa == (1u<<24)) {    // renormalize if necessary
             mantissa /= 2;
@@ -279,5 +269,4 @@ TinyFloat operator-(const TinyFloat &f) {
     if (f.isnan()) return f;
     return { !f.negative, f.exponent, f.mantissa };
 }
-
 
