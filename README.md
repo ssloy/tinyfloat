@@ -4,7 +4,7 @@ This is a software 32-bit floating point implementation.
 While there are plenty soft floating point libraries in the wild, I am not satisfied with either of those.
 All of them are way too complex and pretty much undocumented.
 
-**Despite the focus on readability, there are very few comments in the code. An extensive writing is [available here](https://haqr.eu/tinyfloat/).**
+**Despite the focus on readability, there are very few comments in the code. An extensive writing is [available here](https://haqr.eu/tinyfloat/):**
 
 1. [Computers and numbers](https://haqr.eu/tinyfloat/computers-and-numbers/)
 2. [Printing floats](https://haqr.eu/tinyfloat/print/)
