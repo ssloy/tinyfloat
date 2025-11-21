@@ -4,12 +4,13 @@ This is a software 32-bit floating point implementation.
 While there are plenty soft floating point libraries in the wild, I am not satisfied with either of those.
 All of them are way too complex and pretty much undocumented.
 
-**Despite the focus on readability, there are very few comments in the code. An extensive writing is [available here](https://haqr.eu/tinyfloat/):**
+**Despite the focus on readability, there are very few comments in the code. An extensive writing is available here:**
 
-1. [Computers and numbers](https://haqr.eu/tinyfloat/computers-and-numbers/)
-2. [Printing floats](https://haqr.eu/tinyfloat/print/)
-3. [Summation and numerical errors](https://haqr.eu/tinyfloat/add/)
-4. [Division and multiplication **(work in progress**)](https://haqr.eu/tinyfloat/div/)
+1. [Floating point myths and superstitions](https://haqr.eu/tinyfloat/)
+2. [Computers and numbers](https://haqr.eu/tinyfloat/computers-and-numbers/)
+3. [Printing floats](https://haqr.eu/tinyfloat/print/)
+4. [Summation and numerical errors](https://haqr.eu/tinyfloat/add/)
+5. [Division and multiplication (work in progress)](https://haqr.eu/tinyfloat/div/)
 
 This is a tiny project, the goal is to make a **simple and understandable** implementation of single-precision floating point.
 I do not care about efficiency as long as the code is simple.
